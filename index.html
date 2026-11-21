@@ -6,139 +6,203 @@
 <title>State College Scan Coverage</title>
 <meta name="description" content="Which State College historic buildings have been laser scanned, photographed from the air and matched to Sanborn maps, by HARB priority area.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  /* Layout: header and four area cards, then a map beside a building panel; stacks to one column on phones. */
+  /* Layout: navy nav and hero like the AE Research Scholars page (ae.psu.edu style), then area cards, then map beside a building panel. */
   :root {
-    --bg: #f7f8f6; --panel: #ffffff; --fg: #1d2420; --muted: #5d6a63; --line: #d9dfdb;
-    --done: #2f6f5e; --none: #e3e8e4; --ref: #8a958f; --street: #d3d9d5; --bad: #a33a2a;
-    --serif: "Source Serif 4", Georgia, serif; --sans: "Source Sans 3", system-ui, -apple-system, sans-serif;
-    --r: 8px;
+    --ink: #0a2240; --navy: #002f87; --navy-light: #1a4a9e; --steel: #4A6680; --accent: #83acd5;
+    --paper: #ffffff; --sand: #e5e6e8; --text: #231f20; --text-secondary: #555555; --border: #d2d8e1; --card-bg: #ffffff;
+    --hero-bg: #0a2240; --hero-text: #ffffff; --hero-sub: #b0c8e0;
+    /* map tokens */
+    --fg: var(--text); --muted: var(--text-secondary); --panel: var(--card-bg); --line: var(--border);
+    --done: #002f87; --none: #dfe3e8; --ref: #4A6680; --street: #e8ebef;
+    --slab: 'Roboto Slab', Georgia, serif; --sans: 'Roboto', Verdana, Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    --bg: #141917; --panel: #1c2320; --fg: #e6ebe8; --muted: #9aa8a1; --line: #2e3833;
-    --done: #5fb39c; --none: #36423c; --ref: #7d8a84; --street: #2a332f; --bad: #e07a66; color-scheme: dark; } }
+    --ink: #e0e6ee; --navy: #6ba3d4; --navy-light: #7db8e8; --steel: #8aa4ba;
+    --paper: #0a1628; --sand: #111e34; --text: #c8d0dc; --text-secondary: #8b9298; --border: #253350; --card-bg: #0f1d34;
+    --hero-bg: #060e1c; --hero-text: #e0e6ee; --hero-sub: #6b8aaa;
+    --done: #6ba3d4; --none: #1f2e4a; --ref: #8aa4ba; --street: #16243d; color-scheme: dark; } }
   :root[data-theme="dark"] {
-    --bg: #141917; --panel: #1c2320; --fg: #e6ebe8; --muted: #9aa8a1; --line: #2e3833;
-    --done: #5fb39c; --none: #36423c; --ref: #7d8a84; --street: #2a332f; --bad: #e07a66; color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--sans); }
-  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 32px 48px;
-    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-    display: grid; gap: 28px; }
-  header { display: grid; gap: 8px; max-width: 70ch; }
-  .eyebrow { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0; text-wrap: balance; }
-  .lede { margin: 0; color: var(--muted); }
-  .lede b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
-  .tier { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-  .card h2 { margin: 0; font-size: 17px; font-weight: 600; }
-  .why { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
-  .count { font-family: var(--serif); font-size: 28px; font-variant-numeric: tabular-nums; }
-  .count small { font-family: var(--sans); font-size: 13px; color: var(--muted); }
-  .meth { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 14px; align-items: center; }
-  .meth .n { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--none); overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--done); border-radius: 3px; width: 0; }
-  .mapwrap { display: grid; gap: 18px; grid-template-columns: minmax(0, 2.2fr) minmax(250px, 1fr); align-items: start; }
+    --ink: #e0e6ee; --navy: #6ba3d4; --navy-light: #7db8e8; --steel: #8aa4ba;
+    --paper: #0a1628; --sand: #111e34; --text: #c8d0dc; --text-secondary: #8b9298; --border: #253350; --card-bg: #0f1d34;
+    --hero-bg: #060e1c; --hero-text: #e0e6ee; --hero-sub: #6b8aaa;
+    --done: #6ba3d4; --none: #1f2e4a; --ref: #8aa4ba; --street: #16243d; color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); font-size: 17px; line-height: 1.7; color: var(--text); background: var(--paper); -webkit-font-smoothing: antialiased; }
+  a { color: var(--navy); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .pad { padding-left: max(2rem, env(safe-area-inset-left, 0px)); padding-right: max(2rem, env(safe-area-inset-right, 0px)); }
+  @media (max-width: 640px) { .pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+
+  .site-nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 100; background: var(--hero-bg); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 101; background: var(--hero-bg); }
+  .nav-inner { max-width: 1060px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 52px; }
+  .nav-brand { font-family: var(--slab); font-size: 0.95rem; font-weight: 700; color: var(--hero-text); letter-spacing: 0.04em; }
+  .nav-brand span { color: var(--accent); }
+  .nav-brand:hover { text-decoration: none; }
+  .nav-links { display: flex; gap: 1.8rem; list-style: none; }
+  .nav-links a { font-size: 0.82rem; color: var(--hero-sub); letter-spacing: 0.03em; text-transform: uppercase; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a:focus-visible { color: var(--accent); text-decoration: none; }
+  @media (max-width: 640px) { .nav-links { gap: 1rem; } .nav-links a { font-size: 0.75rem; } }
+
+  .hero { background: var(--hero-bg); color: var(--hero-text); padding-block: 4rem 3.5rem; position: relative; overflow: hidden; }
+  .hero::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); opacity: 0.5; }
+  .hero-inner { max-width: 1060px; margin: 0 auto; }
+  .hero-eyebrow { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 0.8rem; }
+  .hero h1 { font-family: var(--slab); font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 400; line-height: 1.3; margin-bottom: 1.2rem; text-wrap: balance; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero-summary { font-size: 1.05rem; line-height: 1.65; color: var(--hero-sub); max-width: 680px; }
+  .hero-summary b { color: var(--hero-text); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .section { padding-block: 3rem; }
+  .section--base { border-bottom: 1px solid var(--border); }
+  .section-inner { max-width: 1060px; margin: 0 auto; }
+  .section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); margin-bottom: 0.6rem; }
+  .section h2 { font-family: var(--slab); font-size: 1.5rem; font-weight: 400; color: var(--ink); margin-bottom: 1.2rem; }
+  .section-intro { max-width: 70ch; margin-bottom: 1.2rem; color: var(--text-secondary); font-size: 0.95rem; }
+
+  .cards { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1.4rem; display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+  .tier { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--steel); }
+  .card h3 { font-size: 1rem; font-weight: 600; color: var(--ink); }
+  .why { font-size: 0.9rem; line-height: 1.55; color: var(--text-secondary); }
+  .count { font-family: var(--slab); font-size: 1.8rem; font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .count small { font-family: var(--sans); font-size: 0.82rem; color: var(--text-secondary); }
+  .meth { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 0.88rem; align-items: center; }
+  .meth .n { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--none); overflow: hidden; margin-bottom: 4px; }
+  .bar i { display: block; height: 100%; background: var(--navy); border-radius: 3px; width: 0; }
+
+  .mapwrap { display: grid; gap: 1.2rem; grid-template-columns: minmax(0, 2.2fr) minmax(250px, 1fr); align-items: start; }
   @media (max-width: 780px) { .mapwrap { grid-template-columns: minmax(0, 1fr); } }
-  .mapcol { display: grid; gap: 10px; min-width: 0; }
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
-  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); }
-  .seg button { font: inherit; font-size: 14px; padding: 6px 12px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button[aria-pressed="true"] { background: var(--done); color: var(--panel); font-weight: 600; }
-  select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); color: var(--fg); }
-  button:focus-visible, select:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-  .map { position: relative; min-height: 380px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); overflow: hidden; touch-action: none; }
+  .mapcol { display: grid; gap: 0.7rem; min-width: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: space-between; align-items: center; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; background: var(--card-bg); }
+  .seg button { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.9rem; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed="true"] { background: var(--navy); color: var(--paper); font-weight: 500; }
+  select { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: var(--card-bg); color: var(--text); }
+  button:focus-visible, select:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+  .map { position: relative; min-height: 380px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); overflow: hidden; touch-action: none; }
   .map svg { display: block; width: 100%; cursor: grab; }
-  .msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); font-size: 14px; pointer-events: none; }
-  .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 16px rgb(0 0 0 / .15); border-radius: var(--r); padding: 8px 10px; font-size: 13px; max-width: 240px; line-height: 1.4; display: none; z-index: 2; }
-  .tip b { display: block; }
-  .tip span { display: block; color: var(--muted); }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+  .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-secondary); font-size: 0.9rem; pointer-events: none; }
+  .tip { position: absolute; pointer-events: none; background: var(--card-bg); border: 1px solid var(--border); box-shadow: 0 4px 16px rgb(10 34 64 / .18); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; max-width: 240px; line-height: 1.4; display: none; z-index: 2; }
+  .tip b { display: block; font-weight: 500; color: var(--ink); }
+  .tip span { display: block; color: var(--text-secondary); }
+  .legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary); list-style: none; }
   .legend li { display: inline-flex; gap: 6px; align-items: center; }
   .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-  .hint { margin: 0; font-size: 13px; color: var(--muted); }
-  .detail { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 12px; min-width: 0; }
-  .detail h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 20px; }
-  .detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14px; }
-  .detail dt { color: var(--muted); }
-  .detail dd { margin: 0; }
-  .status { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
+  .hint { font-size: 0.82rem; color: var(--text-secondary); }
+  .detail { background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1.4rem; display: grid; gap: 0.8rem; min-width: 0; }
+  .detail h3 { font-family: var(--slab); font-weight: 400; font-size: 1.2rem; color: var(--ink); line-height: 1.35; }
+  .detail dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; font-size: 0.88rem; }
+  .detail dt { color: var(--text-secondary); }
+  .status { display: grid; gap: 4px; list-style: none; font-size: 0.92rem; border-top: 1px solid var(--border); padding-top: 0.8rem; }
   .status li { display: flex; gap: 8px; align-items: baseline; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--none); border: 1px solid var(--ref); }
-  .dot.on { background: var(--done); border-color: var(--done); }
-  .status small { color: var(--muted); }
-  footer { font-size: 13px; color: var(--muted); display: grid; gap: 8px; max-width: 80ch; border-top: 1px solid var(--line); padding-top: 16px; }
-  footer p { margin: 0; }
-  footer a { color: inherit; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--sand); border: 1px solid var(--steel); }
+  .dot.on { background: var(--navy); border-color: var(--navy); }
+  .status small { color: var(--text-secondary); }
+  .about p { max-width: 75ch; margin-bottom: 1rem; font-size: 0.95rem; }
+
+  .site-footer { text-align: center; padding-block: 2rem; font-size: 0.8rem; color: var(--text-secondary); border-top: 1px solid var(--border); }
+  .site-footer a { color: var(--steel); }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <span class="eyebrow">Heritage 3D Lab, Penn State, with State College HARB</span>
-    <h1>State College scan coverage</h1>
-    <p class="lede" id="lede">Of the <b data-n="All areas:total">–</b> historic buildings HARB asked us to document, <b data-n="All areas:backpack">–</b> have an exterior backpack laser scan, <b data-n="All areas:drone">–</b> have drone roof views and <b data-n="All areas:sanborn">–</b> are matched to Sanborn fire insurance maps. Updated <b id="asof">–</b>.</p>
-  </header>
+<nav class="site-nav pad" aria-label="Primary">
+  <div class="nav-inner">
+    <a href="./" class="nav-brand">State College <span>Scan Coverage</span></a>
+    <ul class="nav-links">
+      <li><a href="#areas">Areas</a></li>
+      <li><a href="#map-section">Map</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+  </div>
+</nav>
 
-  <section class="cards" aria-label="Coverage by area">
-    <article class="card"><span class="tier">Tier 1</span><h2>West End</h2>
-      <p class="why">West of Atherton, Foster Ave to campus. Rezoning expected by about June 2027.</p>
-      <div class="count"><span data-n="West End:total">–</span> <small>buildings</small></div>
-      <div class="meth" data-area="West End"></div></article>
-    <article class="card"><span class="tier">Tier 2</span><h2>Holmes-Foster/Highlands</h2>
-      <p class="why">The rest of the Holmes-Foster/Highlands district outside the West End.</p>
-      <div class="count"><span data-n="Holmes-Foster/Highlands:total">–</span> <small>buildings</small></div>
-      <div class="meth" data-area="Holmes-Foster/Highlands"></div></article>
-    <article class="card"><span class="tier">Tier 3</span><h2>College Heights</h2>
-      <p class="why">Last, since its zoning isn't changing.</p>
-      <div class="count"><span data-n="College Heights:total">–</span> <small>buildings</small></div>
-      <div class="meth" data-area="College Heights"></div></article>
-    <article class="card"><span class="tier">Alongside</span><h2>Older downtown</h2>
-      <p class="why">Select buildings from the 1982 county survey, plus the Corner Room and the Tavern.</p>
-      <div class="count"><span data-n="Downtown:total">–</span> <small>buildings</small></div>
-      <div class="meth" data-area="Downtown"></div></article>
-  </section>
+<header class="hero pad">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Heritage 3D Lab &middot; Penn State Architectural Engineering</p>
+    <h1>Documenting State College's <em>historic districts</em></h1>
+    <p class="hero-summary" id="lede">Of the <b data-n="All areas:total">–</b> historic buildings the State College Historical and Architectural Review Board asked us to document, <b data-n="All areas:backpack">–</b> have an exterior backpack laser scan, <b data-n="All areas:drone">–</b> have drone roof views and <b data-n="All areas:sanborn">–</b> are matched to Sanborn fire insurance maps. Updated <b id="asof">–</b>.</p>
+  </div>
+</header>
 
-  <section class="mapwrap">
-    <div class="mapcol">
-      <div class="controls">
-        <div class="seg" role="group" aria-label="Show on the map" id="mode">
-          <button type="button" data-mode="backpack" aria-pressed="true">Backpack scan</button>
-          <button type="button" data-mode="drone" aria-pressed="false">Drone roof</button>
-          <button type="button" data-mode="sanborn" aria-pressed="false">Sanborn maps</button>
-          <button type="button" data-mode="all" aria-pressed="false">All three</button>
-        </div>
-        <select id="zoomto" aria-label="Zoom to an area">
-          <option value="">All areas</option>
-          <option value="West End">West End</option>
-          <option value="Holmes-Foster/Highlands">Holmes-Foster/Highlands</option>
-          <option value="College Heights">College Heights</option>
-          <option value="Downtown">Older downtown</option>
-        </select>
-      </div>
-      <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><div class="tip" id="tip"></div></div>
-      <ul class="legend">
-        <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
-        <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
-        <li><i class="sw" style="background:var(--done)"></i>Collected</li>
-        <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
-      </ul>
-      <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details.</p>
+<section id="areas" class="section section--base pad">
+  <div class="section-inner">
+    <p class="section-label">Priority areas</p>
+    <h2>Progress in each area</h2>
+    <p class="section-intro">Areas are in the order HARB gave on November 10, 2026, starting with the West End ahead of its rezoning.</p>
+    <div class="cards">
+      <article class="card"><span class="tier">Tier 1</span><h3>West End</h3>
+        <p class="why">West of Atherton, Foster Ave to campus. Rezoning expected by about June 2027.</p>
+        <div class="count"><span data-n="West End:total">–</span> <small>buildings</small></div>
+        <div class="meth" data-area="West End"></div></article>
+      <article class="card"><span class="tier">Tier 2</span><h3>Holmes-Foster/Highlands</h3>
+        <p class="why">The rest of the Holmes-Foster/Highlands district outside the West End.</p>
+        <div class="count"><span data-n="Holmes-Foster/Highlands:total">–</span> <small>buildings</small></div>
+        <div class="meth" data-area="Holmes-Foster/Highlands"></div></article>
+      <article class="card"><span class="tier">Tier 3</span><h3>College Heights</h3>
+        <p class="why">Last, since its zoning isn't changing.</p>
+        <div class="count"><span data-n="College Heights:total">–</span> <small>buildings</small></div>
+        <div class="meth" data-area="College Heights"></div></article>
+      <article class="card"><span class="tier">Alongside</span><h3>Older downtown</h3>
+        <p class="why">Select buildings from the 1982 county survey, plus the Corner Room and the Tavern.</p>
+        <div class="count"><span data-n="Downtown:total">–</span> <small>buildings</small></div>
+        <div class="meth" data-area="Downtown"></div></article>
     </div>
-    <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
-  </section>
+  </div>
+</section>
 
-  <footer>
+<section id="map-section" class="section section--base pad">
+  <div class="section-inner">
+    <p class="section-label">Map</p>
+    <h2>Building by building</h2>
+    <div class="mapwrap">
+      <div class="mapcol">
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Show on the map" id="mode">
+            <button type="button" data-mode="backpack" aria-pressed="true">Backpack scan</button>
+            <button type="button" data-mode="drone" aria-pressed="false">Drone roof</button>
+            <button type="button" data-mode="sanborn" aria-pressed="false">Sanborn maps</button>
+            <button type="button" data-mode="all" aria-pressed="false">All three</button>
+          </div>
+          <select id="zoomto" aria-label="Zoom to an area">
+            <option value="">All areas</option>
+            <option value="West End">West End</option>
+            <option value="Holmes-Foster/Highlands">Holmes-Foster/Highlands</option>
+            <option value="College Heights">College Heights</option>
+            <option value="Downtown">Older downtown</option>
+          </select>
+        </div>
+        <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><div class="tip" id="tip"></div></div>
+        <ul class="legend">
+          <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
+          <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
+          <li><i class="sw" style="background:var(--done)"></i>Collected</li>
+          <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
+        </ul>
+        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details.</p>
+      </div>
+      <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
+    </div>
+  </div>
+</section>
+
+<section id="about" class="section about pad">
+  <div class="section-inner">
+    <p class="section-label">About</p>
+    <h2>Where the buildings come from</h2>
     <p>Buildings in the West End, Holmes-Foster/Highlands and College Heights are the Borough of State College's contributing properties in its two historic districts. The West End is the area HARB described on November 10, 2026, plus the Borough's draft West End zoning area. Downtown is the buildings on the 1982 Historic Resources of the Centre Region survey inside the draft Downtown zoning area, plus the Tavern. Demolished properties are shown but not counted.</p>
-    <p>Scans are taken from public sidewalks and alleys only, so sides between houses and backs not visible from an alley are not included. This page is a snapshot and is updated as work goes on.</p>
-    <p>Data from Borough of State College GIS. Heritage 3D Lab, Department of Architectural Engineering, Penn State.</p>
-  </footer>
-</div>
+    <p>Scans are taken from public sidewalks and alleys only, so sides between houses and backs not visible from an alley are not included. This page is a snapshot and is updated as work goes on. Building data is from Borough of State College GIS.</p>
+  </div>
+</section>
+
+<footer class="site-footer pad">
+  <p>Heritage 3D Lab &middot; Department of Architectural Engineering &middot; Penn State</p>
+</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script>
