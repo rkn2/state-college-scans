@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>State College Scan Coverage</title>
+<meta name="description" content="Which State College historic buildings have been laser scanned, photographed from the air and matched to Sanborn maps, by HARB priority area.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+  /* Layout: header and four area cards, then a map beside a building panel; stacks to one column on phones. */
+  :root {
+    --bg: #f7f8f6; --panel: #ffffff; --fg: #1d2420; --muted: #5d6a63; --line: #d9dfdb;
+    --done: #2f6f5e; --none: #e3e8e4; --ref: #8a958f; --street: #d3d9d5; --bad: #a33a2a;
+    --serif: "Source Serif 4", Georgia, serif; --sans: "Source Sans 3", system-ui, -apple-system, sans-serif;
+    --r: 8px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #141917; --panel: #1c2320; --fg: #e6ebe8; --muted: #9aa8a1; --line: #2e3833;
+    --done: #5fb39c; --none: #36423c; --ref: #7d8a84; --street: #2a332f; --bad: #e07a66; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg: #141917; --panel: #1c2320; --fg: #e6ebe8; --muted: #9aa8a1; --line: #2e3833;
+    --done: #5fb39c; --none: #36423c; --ref: #7d8a84; --street: #2a332f; --bad: #e07a66; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--sans); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 32px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px; }
+  header { display: grid; gap: 8px; max-width: 70ch; }
+  .eyebrow { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0; text-wrap: balance; }
+  .lede { margin: 0; color: var(--muted); }
+  .lede b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .tier { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .card h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .why { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+  .count { font-family: var(--serif); font-size: 28px; font-variant-numeric: tabular-nums; }
+  .count small { font-family: var(--sans); font-size: 13px; color: var(--muted); }
+  .meth { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 14px; align-items: center; }
+  .meth .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--none); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--done); border-radius: 3px; width: 0; }
+  .mapwrap { display: grid; gap: 18px; grid-template-columns: minmax(0, 2.2fr) minmax(250px, 1fr); align-items: start; }
+  @media (max-width: 780px) { .mapwrap { grid-template-columns: minmax(0, 1fr); } }
+  .mapcol { display: grid; gap: 10px; min-width: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); }
+  .seg button { font: inherit; font-size: 14px; padding: 6px 12px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--done); color: var(--panel); font-weight: 600; }
+  select { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); color: var(--fg); }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  .map { position: relative; min-height: 380px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); overflow: hidden; touch-action: none; }
+  .map svg { display: block; width: 100%; cursor: grab; }
+  .msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); font-size: 14px; pointer-events: none; }
+  .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 4px 16px rgb(0 0 0 / .15); border-radius: var(--r); padding: 8px 10px; font-size: 13px; max-width: 240px; line-height: 1.4; display: none; z-index: 2; }
+  .tip b { display: block; }
+  .tip span { display: block; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+  .legend li { display: inline-flex; gap: 6px; align-items: center; }
+  .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .hint { margin: 0; font-size: 13px; color: var(--muted); }
+  .detail { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 12px; min-width: 0; }
+  .detail h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 20px; }
+  .detail dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14px; }
+  .detail dt { color: var(--muted); }
+  .detail dd { margin: 0; }
+  .status { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
+  .status li { display: flex; gap: 8px; align-items: baseline; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--none); border: 1px solid var(--ref); }
+  .dot.on { background: var(--done); border-color: var(--done); }
+  .status small { color: var(--muted); }
+  footer { font-size: 13px; color: var(--muted); display: grid; gap: 8px; max-width: 80ch; border-top: 1px solid var(--line); padding-top: 16px; }
+  footer p { margin: 0; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Heritage 3D Lab, Penn State, with State College HARB</span>
+    <h1>State College scan coverage</h1>
+    <p class="lede" id="lede">Of the <b data-n="All areas:total">–</b> historic buildings HARB asked us to document, <b data-n="All areas:backpack">–</b> have an exterior backpack laser scan, <b data-n="All areas:drone">–</b> have drone roof views and <b data-n="All areas:sanborn">–</b> are matched to Sanborn fire insurance maps. Updated <b id="asof">–</b>.</p>
+  </header>
+
+  <section class="cards" aria-label="Coverage by area">
+    <article class="card"><span class="tier">Tier 1</span><h2>West End</h2>
+      <p class="why">West of Atherton, Foster Ave to campus. Rezoning expected by about June 2027.</p>
+      <div class="count"><span data-n="West End:total">–</span> <small>buildings</small></div>
+      <div class="meth" data-area="West End"></div></article>
+    <article class="card"><span class="tier">Tier 2</span><h2>Holmes-Foster/Highlands</h2>
+      <p class="why">The rest of the Holmes-Foster/Highlands district outside the West End.</p>
+      <div class="count"><span data-n="Holmes-Foster/Highlands:total">–</span> <small>buildings</small></div>
+      <div class="meth" data-area="Holmes-Foster/Highlands"></div></article>
+    <article class="card"><span class="tier">Tier 3</span><h2>College Heights</h2>
+      <p class="why">Last, since its zoning isn't changing.</p>
+      <div class="count"><span data-n="College Heights:total">–</span> <small>buildings</small></div>
+      <div class="meth" data-area="College Heights"></div></article>
+    <article class="card"><span class="tier">Alongside</span><h2>Older downtown</h2>
+      <p class="why">Select buildings from the 1982 county survey, plus the Corner Room and the Tavern.</p>
+      <div class="count"><span data-n="Downtown:total">–</span> <small>buildings</small></div>
+      <div class="meth" data-area="Downtown"></div></article>
+  </section>
+
+  <section class="mapwrap">
+    <div class="mapcol">
+      <div class="controls">
+        <div class="seg" role="group" aria-label="Show on the map" id="mode">
+          <button type="button" data-mode="backpack" aria-pressed="true">Backpack scan</button>
+          <button type="button" data-mode="drone" aria-pressed="false">Drone roof</button>
+          <button type="button" data-mode="sanborn" aria-pressed="false">Sanborn maps</button>
+          <button type="button" data-mode="all" aria-pressed="false">All three</button>
+        </div>
+        <select id="zoomto" aria-label="Zoom to an area">
+          <option value="">All areas</option>
+          <option value="West End">West End</option>
+          <option value="Holmes-Foster/Highlands">Holmes-Foster/Highlands</option>
+          <option value="College Heights">College Heights</option>
+          <option value="Downtown">Older downtown</option>
+        </select>
+      </div>
+      <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><div class="tip" id="tip"></div></div>
+      <ul class="legend">
+        <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
+        <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
+        <li><i class="sw" style="background:var(--done)"></i>Collected</li>
+        <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
+      </ul>
+      <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details.</p>
+    </div>
+    <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
+  </section>
+
+  <footer>
+    <p>Buildings in the West End, Holmes-Foster/Highlands and College Heights are the Borough of State College's contributing properties in its two historic districts. The West End is the area HARB described on November 10, 2026, plus the Borough's draft West End zoning area. Downtown is the buildings on the 1982 Historic Resources of the Centre Region survey inside the draft Downtown zoning area, plus the Tavern. Demolished properties are shown but not counted.</p>
+    <p>Scans are taken from public sidewalks and alleys only, so sides between houses and backs not visible from an alley are not included. This page is a snapshot and is updated as work goes on.</p>
+    <p>Data from Borough of State College GIS. Heritage 3D Lab, Department of Architectural Engineering, Penn State.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(async function () {
+  const AREAS = ['West End', 'Holmes-Foster/Highlands', 'College Heights', 'Downtown'];
+  const METHODS = [['backpack', 'Exterior backpack scan'], ['drone', 'Drone roof views'], ['sanborn', 'Matched to Sanborn maps']];
+  const fmt = d3.format(',');
+  const msg = document.getElementById('msg');
+  let B, A, C;
+  try {
+    [B, A, C] = await Promise.all(['data/buildings.json', 'data/areas.json', 'data/coverage.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
+  } catch (e) { msg.textContent = 'The map data did not load. Try reloading the page.'; return; }
+  const rows = B.rows;
+  const done = new Map(Object.entries(C.ticks || {}));
+  document.getElementById('asof').textContent = C.asOf ? d3.utcFormat('%B %-d, %Y')(new Date(C.asOf + 'T12:00:00Z')) : '–';
+
+  const tally = (list, area) => {
+    const live = list.filter((b) => !b.demolished);
+    const n = (m) => live.filter((b) => done.get(b.id) && done.get(b.id)[m]).length;
+    return { area, total: live.length, backpack: n('backpack'), drone: n('drone'), sanborn: n('sanborn') };
+  };
+  const cov = new Map([...AREAS.map((a) => tally(rows.filter((b) => b.area === a), a)), tally(rows, 'All areas')].map((r) => [r.area, r]));
+  document.querySelectorAll('[data-n]').forEach((el) => { const [a, f] = el.dataset.n.split(':'); el.textContent = fmt(cov.get(a)[f]); });
+  document.querySelectorAll('.meth').forEach((el) => {
+    const r = cov.get(el.dataset.area);
+    METHODS.forEach(([m]) => {
+      const lab = document.createElement('span'); lab.textContent = { backpack: 'Backpack scan', drone: 'Drone roof', sanborn: 'Sanborn maps' }[m];
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = `${fmt(r[m])} of ${fmt(r.total)}`;
+      const bar = document.createElement('div'); bar.className = 'bar'; const i = document.createElement('i');
+      i.style.width = `${r.total ? (100 * r[m]) / r.total : 0}%`; bar.appendChild(i);
+      el.append(lab, n, bar);
+    });
+  });
+
+  let mode = 'backpack', sel = null, t = d3.zoomIdentity;
+  const K = Math.cos(40.795 * Math.PI / 180);
+  const flat = (c) => (typeof c[0] === 'number' ? [c[0] * K, c[1]] : c.map(flat));
+  const outlines = A.features.filter((f) => f.properties.area).map((f) => ({ ...f, geometry: { type: f.geometry.type, coordinates: flat(f.geometry.coordinates) } }));
+  const streets = A.features.filter((f) => f.properties.street !== undefined).map((f) => ({ ...f, geometry: { type: f.geometry.type, coordinates: flat(f.geometry.coordinates) } }));
+  const parcels = rows.filter((r) => r.shape).map((r) => ({ type: 'Feature', id: r.id, row: r, geometry: { type: 'Polygon', coordinates: [r.shape.split(';').map((p) => { const [x, y] = p.split(',').map(Number); return [x * K, y]; })] } }));
+  const dots = rows.filter((r) => !r.shape);
+
+  const el = document.getElementById('map'), tip = d3.select('#tip');
+  const svg = d3.select(el).append('svg').attr('role', 'img').attr('aria-label', 'Map of the historic areas with each building shaded by whether it has been collected');
+  const g = svg.append('g');
+  const gS = g.append('g'), gP = g.append('g'), gA = g.append('g'), gD = g.append('g'), gL = g.append('g');
+  const zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { t = ev.transform; g.attr('transform', t); restyle(); });
+  svg.call(zoom);
+  let path, proj, w, h;
+
+  const level = (r) => {
+    const d = done.get(r.id) || {};
+    if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => d[m]).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
+    return d[mode] ? 'done' : 'none';
+  };
+  const fill = (r) => (r.demolished ? 'transparent' : level(r) === 'none' ? 'var(--none)' : 'var(--done)');
+  const op = (r) => (!r.demolished && level(r) === 'some' ? 0.45 : 1);
+
+  function showTip(ev, r) {
+    const d = done.get(r.id) || {};
+    tip.selectAll('*').remove();
+    tip.append('b').text(r.name ? `${r.name}, ${r.address}` : r.address);
+    [r.year ? `Built ${r.year}` : '', r.architect ? `Architect ${r.architect}` : '',
+      r.demolished ? 'Demolished' : `Backpack ${d.backpack ? '✓' : '–'}   Drone ${d.drone ? '✓' : '–'}   Sanborn ${d.sanborn ? '✓' : '–'}`]
+      .filter(Boolean).forEach((l) => tip.append('span').text(l));
+    const [mx, my] = d3.pointer(ev, el);
+    const left = mx + 254 > el.clientWidth ? mx - 250 : mx + 14;
+    tip.style('display', 'block').style('left', `${Math.max(4, left)}px`).style('top', `${Math.max(4, my - 10)}px`);
+  }
+  const hideTip = () => tip.style('display', 'none');
+
+  function select(id) { sel = id; restyle(); detail(); }
+
+  function detail() {
+    const box = document.getElementById('detail');
+    const r = rows.find((x) => x.id === sel);
+    if (!r) return;
+    const d = done.get(r.id) || {};
+    const h3 = document.createElement('h3'); h3.textContent = r.name ? `${r.name}, ${r.address}` : r.address;
+    const dl = document.createElement('dl');
+    const tierText = { 1: 'tier 1', 2: 'tier 2', 3: 'tier 3', 0: 'alongside' }[r.tier];
+    [['Area', `${r.area === 'Downtown' ? 'Older downtown' : r.area} (${tierText})`],
+      ['Listed as', r.kind + (r.on1982 && r.kind !== '1982 county survey' ? ', also on the 1982 survey' : '')],
+      ['Built', r.year ? String(r.year) : ''], ['Architect', r.architect], ['Builder', r.builder],
+      ['Stories', r.stories ? String(Number(r.stories)) : ''], ['Status', r.demolished ? 'Demolished' : '']]
+      .filter(([, v]) => v).forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
+    const ul = document.createElement('ul'); ul.className = 'status';
+    METHODS.forEach(([m, label]) => {
+      const li = document.createElement('li'); const dot = document.createElement('i'); dot.className = 'dot' + (d[m] ? ' on' : '');
+      const s = document.createElement('span'); s.textContent = label + ' ';
+      const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : 'not yet';
+      s.appendChild(sm); li.append(dot, s); ul.appendChild(li);
+    });
+    box.replaceChildren(h3, dl, ul);
+  }
+
+  function restyle() {
+    const k = t.k;
+    gS.selectAll('path').attr('stroke-width', 0.8 / k);
+    gA.selectAll('path').attr('stroke-width', 2 / k);
+    gP.selectAll('path').style('fill', (d) => fill(d.row)).style('fill-opacity', (d) => op(d.row))
+      .style('stroke', (d) => (d.id === sel ? 'var(--fg)' : d.row.demolished ? 'var(--muted)' : 'var(--panel)'))
+      .attr('stroke-width', (d) => (d.id === sel ? 2.4 : 0.6) / k);
+    gP.selectAll('path').filter((d) => d.id === sel).raise();
+    gD.selectAll('circle').attr('r', 4.5 / Math.sqrt(k)).style('fill', fill).style('fill-opacity', op)
+      .style('stroke', (d) => (d.id === sel ? 'var(--fg)' : 'var(--muted)')).attr('stroke-width', (d) => (d.id === sel ? 2 : 1) / k);
+    gL.selectAll('text').attr('font-size', 12 / k);
+  }
+
+  function draw() {
+    w = Math.max(280, el.clientWidth); h = Math.round(Math.max(360, Math.min(640, w * 0.78)));
+    svg.attr('viewBox', `0 0 ${w} ${h}`).attr('height', h);
+    proj = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [w - 10, h - 10]], { type: 'FeatureCollection', features: outlines });
+    path = d3.geoPath(proj);
+    gS.selectAll('path').data(streets).join('path').attr('d', path).style('fill', 'none').style('stroke', 'var(--street)');
+    gA.selectAll('path').data(outlines).join('path').attr('d', path).style('fill', 'none').style('stroke', 'var(--ref)')
+      .attr('stroke-dasharray', (d) => (d.properties.area === 'Downtown' ? '5 4' : null)).style('pointer-events', 'none');
+    gP.selectAll('path').data(parcels, (d) => d.id).join('path').attr('d', path).style('cursor', 'pointer')
+      .attr('stroke-dasharray', (d) => (d.row.demolished ? '2 2' : null))
+      .on('mousemove', (ev, d) => showTip(ev, d.row)).on('mouseleave', hideTip).on('click', (ev, d) => select(d.id));
+    gD.selectAll('circle').data(dots, (d) => d.id).join('circle')
+      .attr('cx', (d) => proj([d.lon * K, d.lat])[0]).attr('cy', (d) => proj([d.lon * K, d.lat])[1]).style('cursor', 'pointer')
+      .on('mousemove', showTip).on('mouseleave', hideTip).on('click', (ev, d) => select(d.id));
+    const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
+    const anchor = (f) => {
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      const big = polys.map((p) => p[0].map((c) => proj(c))).sort((a, b) => Math.abs(d3.polygonArea(b)) - Math.abs(d3.polygonArea(a)))[0];
+      return d3.polygonCentroid(big);
+    };
+    gL.selectAll('text').data(outlines).join('text').text((d) => names[d.properties.area])
+      .attr('x', (d) => anchor(d)[0]).attr('y', (d) => anchor(d)[1]).attr('text-anchor', 'middle')
+      .style('fill', 'var(--muted)').style('font-weight', 600).style('pointer-events', 'none')
+      .style('paint-order', 'stroke').style('stroke', 'var(--panel)').style('stroke-width', '3px').style('fill', 'var(--fg)');
+    svg.call(zoom.transform, d3.zoomIdentity);
+    restyle();
+  }
+
+  msg.remove();
+  draw();
+  let lastW = el.clientWidth;
+  new ResizeObserver(() => { if (Math.abs(el.clientWidth - lastW) > 2) { lastW = el.clientWidth; draw(); } }).observe(el);
+
+  document.querySelectorAll('#mode button').forEach((btn) => btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    document.querySelectorAll('#mode button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    restyle(); if (sel) detail();
+  }));
+  document.getElementById('zoomto').addEventListener('change', (e) => {
+    const f = outlines.find((o) => o.properties.area === e.target.value);
+    let nt = d3.zoomIdentity;
+    if (f) {
+      const [[x0, y0], [x1, y1]] = path.bounds(f);
+      const k = Math.min(14, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h));
+      nt = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
+    }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    (reduce ? svg : svg.transition().duration(600)).call(zoom.transform, nt);
+  });
+})();
+</script>
+</body>
+</html>
