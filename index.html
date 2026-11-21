@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>State College Scan Coverage</title>
 <meta name="description" content="Which State College historic buildings have been laser scanned, photographed from the air and matched to Sanborn maps, by HARB priority area.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -108,12 +109,32 @@
 
   .site-footer { text-align: center; padding-block: 2rem; font-size: 0.8rem; color: var(--text-secondary); border-top: 1px solid var(--border); }
   .site-footer a { color: var(--steel); }
+  .brand-wrap { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .brand-wrap:hover { text-decoration: none; }
+  .nav-brand .brand-text { color: var(--hero-text); }
+  .nav-brand .brand-text span { color: var(--accent); }
+  .logo-tile { width: 38px; height: 38px; border-radius: 6px; background: #fbfaf7; padding: 2px; flex: none; display: block; }
+  .logo-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .psu-lockup { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--hero-text); font-size: 0.8rem; letter-spacing: 0.02em; }
+  .psu-lockup:hover { text-decoration: none; color: var(--accent); }
+  .psu-lockup strong { font-family: var(--slab); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; }
+  .psu-lockup i { width: 1px; height: 1.4em; background: var(--hero-sub); opacity: .6; }
+  .hero-orgs { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.6rem; margin-bottom: 1.4rem; }
+  .hero-lab { display: inline-flex; align-items: center; gap: 0.7rem; color: var(--hero-text); font-family: var(--slab); font-size: 0.95rem; }
+  .hero-lab:hover { text-decoration: none; color: var(--accent); }
+  .hero-lab .logo-tile { width: 54px; height: 54px; }
+  .credit { display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem 1.4rem; margin-top: 1.4rem; max-width: 75ch; }
+  .credit img { width: 96px; height: auto; border-radius: 6px; background: #fbfaf7; flex: none; }
+  .credit div { flex: 1 1 260px; min-width: 0; font-size: 0.92rem; line-height: 1.6; }
+  .credit strong { display: block; font-family: var(--slab); font-weight: 400; font-size: 1.1rem; color: var(--ink); }
+  .site-footer .foot-logo { width: 44px; height: 44px; border-radius: 6px; background: #fbfaf7; margin: 0 auto 0.6rem; display: block; }
+  @media (max-width: 640px) { .nav-brand .brand-text { display: none; } }
 </style>
 </head>
 <body>
 <nav class="site-nav pad" aria-label="Primary">
   <div class="nav-inner">
-    <a href="./" class="nav-brand">State College <span>Scan Coverage</span></a>
+    <a href="./" class="nav-brand brand-wrap"><span class="logo-tile"><img src="assets/h3d-logo.png" alt="Heritage 3D Lab logo"></span><span class="brand-text">State College <span>Scan Coverage</span></span></a>
     <ul class="nav-links">
       <li><a href="#areas">Areas</a></li>
       <li><a href="#map-section">Map</a></li>
@@ -124,7 +145,11 @@
 
 <header class="hero pad">
   <div class="hero-inner">
-    <p class="hero-eyebrow">Heritage 3D Lab &middot; Penn State Architectural Engineering</p>
+    <div class="hero-orgs">
+      <a class="hero-lab" href="https://rkn2.github.io/heritage3d-lab/"><span class="logo-tile"><img src="assets/h3d-logo.png" alt=""></span>Heritage 3D Lab</a>
+      <a class="psu-lockup" href="https://www.ae.psu.edu/"><strong>Penn State</strong><i aria-hidden="true"></i>Architectural Engineering</a>
+    </div>
+    <p class="hero-eyebrow">With the State College Historical and Architectural Review Board</p>
     <h1>Documenting State College's <em>historic districts</em></h1>
     <p class="hero-summary" id="lede">Of the <b data-n="All areas:total">–</b> historic buildings the State College Historical and Architectural Review Board asked us to document, <b data-n="All areas:backpack">–</b> have an exterior backpack laser scan, <b data-n="All areas:drone">–</b> have drone roof views and <b data-n="All areas:sanborn">–</b> are matched to Sanborn fire insurance maps. Updated <b id="asof">–</b>.</p>
   </div>
@@ -197,11 +222,16 @@
     <h2>Where the buildings come from</h2>
     <p>Buildings in the West End, Holmes-Foster/Highlands and College Heights are the Borough of State College's contributing properties in its two historic districts. The West End is the area HARB described on November 10, 2026, plus the Borough's draft West End zoning area. Downtown is the buildings on the 1982 Historic Resources of the Centre Region survey inside the draft Downtown zoning area, plus the Tavern. Demolished properties are shown but not counted.</p>
     <p>Scans are taken from public sidewalks and alleys only, so sides between houses and backs not visible from an alley are not included. This page is a snapshot and is updated as work goes on. Building data is from Borough of State College GIS.</p>
+    <div class="credit">
+      <img src="assets/h3d-logo.png" alt="Heritage 3D Lab logo, a corner storefront drawn from point cloud to brick">
+      <div><strong>Heritage 3D Lab</strong>The Heritage 3D Lab in the <a href="https://www.ae.psu.edu/">Department of Architectural Engineering at Penn State</a> uses 3D data and AI to understand, protect and reimagine older masonry buildings. Students in the lab will do the scanning, drone flights and Sanborn map work for this project. <a href="https://rkn2.github.io/heritage3d-lab/">Visit the lab site</a>.</div>
+    </div>
   </div>
 </section>
 
 <footer class="site-footer pad">
-  <p>Heritage 3D Lab &middot; Department of Architectural Engineering &middot; Penn State</p>
+  <img class="foot-logo" src="assets/h3d-logo.png" alt="">
+  <p><a href="https://rkn2.github.io/heritage3d-lab/">Heritage 3D Lab</a> &middot; <a href="https://www.ae.psu.edu/">Department of Architectural Engineering</a> &middot; Penn State</p>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
