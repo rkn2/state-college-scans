@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>State College Scan Coverage</title>
 <meta name="description" content="Which State College historic buildings have been laser scanned, photographed from the air and matched to Sanborn maps, by HARB priority area.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,12 +88,26 @@
   .seg button[aria-pressed="true"] { background: var(--navy); color: var(--paper); font-weight: 500; }
   select { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: var(--card-bg); color: var(--text); }
   button:focus-visible, select:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
-  .map { position: relative; min-height: 380px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); overflow: hidden; touch-action: none; }
-  .map svg { display: block; width: 100%; cursor: grab; }
-  .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-secondary); font-size: 0.9rem; pointer-events: none; }
-  .tip { position: absolute; pointer-events: none; background: var(--card-bg); border: 1px solid var(--border); box-shadow: 0 4px 16px rgb(10 34 64 / .18); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; max-width: 240px; line-height: 1.4; display: none; z-index: 2; }
-  .tip b { display: block; font-weight: 500; color: var(--ink); }
-  .tip span { display: block; color: var(--text-secondary); }
+  .map { position: relative; height: clamp(380px, 68vh, 640px); border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); overflow: hidden; z-index: 0; }
+  .leaflet-container { font-family: var(--sans); background: var(--card-bg); }
+  .leaflet-tooltip.btip { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 4px 16px rgb(10 34 64 / .18); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; line-height: 1.4; max-width: 240px; white-space: normal; }
+  .leaflet-tooltip.btip::before { display: none; }
+  .btip b { display: block; font-weight: 500; color: var(--ink); }
+  .btip span { display: block; color: var(--text-secondary); }
+  .leaflet-control-attribution { font-size: 10px; }
+  .sanborn-row { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; background: var(--sand); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; }
+  .sanborn-row .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
+  .opacity { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-secondary); }
+  .opacity input { width: 120px; accent-color: var(--navy); }
+  .opacity input:disabled { opacity: .4; }
+  .sheets { display: grid; gap: 3px; list-style: none; font-size: 0.88rem; border-top: 1px solid var(--border); padding-top: 0.8rem; }
+  .sheets li { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }
+  .sheets .yr { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); min-width: 2.6em; }
+  .sheets .none { color: var(--text-secondary); }
+  .area-label { background: transparent; border: 0; box-shadow: none; font-weight: 600; font-size: 12px; color: var(--ink); text-shadow: 0 0 3px var(--card-bg), 0 0 3px var(--card-bg), 0 0 3px var(--card-bg); }
+  .area-label::before { display: none; }
+  .sheets-h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
+  .msg { position: absolute; inset: 0; z-index: 500; display: grid; place-items: center; color: var(--text-secondary); font-size: 0.9rem; pointer-events: none; }
   .legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary); list-style: none; }
   .legend li { display: inline-flex; gap: 6px; align-items: center; }
   .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
@@ -203,14 +218,25 @@
             <option value="Downtown">Older downtown</option>
           </select>
         </div>
-        <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><div class="tip" id="tip"></div></div>
+        <div class="sanborn-row">
+          <span class="lbl">Sanborn map</span>
+          <div class="seg" role="group" aria-label="Sanborn map year" id="sanborn">
+            <button type="button" data-year="" aria-pressed="true">Off</button>
+            <button type="button" data-year="1906" aria-pressed="false">1906</button>
+            <button type="button" data-year="1911" aria-pressed="false">1911</button>
+            <button type="button" data-year="1922" aria-pressed="false">1922</button>
+            <button type="button" data-year="1929" aria-pressed="false">1929</button>
+          </div>
+          <label class="opacity" for="sanborn-opacity">Opacity <input type="range" id="sanborn-opacity" min="0.2" max="1" step="0.05" value="0.85" disabled></label>
+        </div>
+        <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p></div>
         <ul class="legend">
           <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
           <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
           <li><i class="sw" style="background:var(--done)"></i>Collected</li>
           <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
         </ul>
-        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details.</p>
+        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details. With a Sanborn year on, buildings show as outlines so the sheet reads through. Sanborn maps from the Penn State University Libraries' Donald W. Hamer Center for Maps and Geospatial Information; the 1906 set ends at Burrowes Street.</p>
       </div>
       <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
     </div>
@@ -236,17 +262,19 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (async function () {
   const AREAS = ['West End', 'Holmes-Foster/Highlands', 'College Heights', 'Downtown'];
   const METHODS = [['backpack', 'Exterior backpack scan'], ['drone', 'Drone roof views'], ['sanborn', 'Matched to Sanborn maps']];
   const fmt = d3.format(',');
   const msg = document.getElementById('msg');
-  let B, A, C;
+  let B, A, C, S;
   try {
-    [B, A, C] = await Promise.all(['data/buildings.json', 'data/areas.json', 'data/coverage.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
+    [B, A, C, S] = await Promise.all(['data/buildings.json', 'data/areas.json', 'data/coverage.json', 'data/sanborn.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
   } catch (e) { msg.textContent = 'The map data did not load. Try reloading the page.'; return; }
   const rows = B.rows;
+  const byId = new Map(rows.map((r) => [r.id, r]));
   const done = new Map(Object.entries(C.ticks || {}));
   document.getElementById('asof').textContent = C.asOf ? d3.utcFormat('%B %-d, %Y')(new Date(C.asOf + 'T12:00:00Z')) : '–';
 
@@ -268,48 +296,80 @@
     });
   });
 
-  let mode = 'backpack', sel = null, t = d3.zoomIdentity;
-  const K = Math.cos(40.795 * Math.PI / 180);
-  const flat = (c) => (typeof c[0] === 'number' ? [c[0] * K, c[1]] : c.map(flat));
-  const outlines = A.features.filter((f) => f.properties.area).map((f) => ({ ...f, geometry: { type: f.geometry.type, coordinates: flat(f.geometry.coordinates) } }));
-  const streets = A.features.filter((f) => f.properties.street !== undefined).map((f) => ({ ...f, geometry: { type: f.geometry.type, coordinates: flat(f.geometry.coordinates) } }));
-  const parcels = rows.filter((r) => r.shape).map((r) => ({ type: 'Feature', id: r.id, row: r, geometry: { type: 'Polygon', coordinates: [r.shape.split(';').map((p) => { const [x, y] = p.split(',').map(Number); return [x * K, y]; })] } }));
-  const dots = rows.filter((r) => !r.shape);
-
-  const el = document.getElementById('map'), tip = d3.select('#tip');
-  const svg = d3.select(el).append('svg').attr('role', 'img').attr('aria-label', 'Map of the historic areas with each building shaded by whether it has been collected');
-  const g = svg.append('g');
-  const gS = g.append('g'), gP = g.append('g'), gA = g.append('g'), gD = g.append('g'), gL = g.append('g');
-  const zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { t = ev.transform; g.attr('transform', t); restyle(); });
-  svg.call(zoom);
-  let path, proj, w, h;
+  let mode = 'backpack', sel = null, year = '';
+  const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const map = L.map('map', { zoomSnap: 0.25, minZoom: 13, maxZoom: 20, attributionControl: true, center: [40.7935, -77.864], zoom: 15 });
+  const gray = dark.matches ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base';
+  const base = L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${gray}/MapServer/tile/{z}/{y}/{x}`, {
+    maxZoom: 20, maxNativeZoom: 16, attribution: 'Basemap Esri, HERE, Garmin, &copy; OpenStreetMap contributors' }).addTo(map);
+  const SB = 'https://tiles.arcgis.com/tiles/l8WMRXQvoma7xG3I/arcgis/rest/services/';
+  const sbName = { 1906: 'StateCollege_1906_FireInsuranceMap', 1911: 'StateCollege_1911_SanbornFireInsuranceMap', 1922: 'StateCollege_1922_SanbornFireInsuranceMap', 1929: 'StateCollege_1929_SanbornFireInsuranceMap' };
+  const sbLayers = {};
+  map.createPane('sanborn'); map.getPane('sanborn').style.zIndex = 350;
+  const sbLayer = (y) => sbLayers[y] || (sbLayers[y] = L.tileLayer(`${SB}${sbName[y]}/MapServer/tile/{z}/{y}/{x}`, {
+    pane: 'sanborn', maxZoom: 20, maxNativeZoom: 19, opacity: 0.85,
+    attribution: `Sanborn map ${y}, Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information` }));
 
   const level = (r) => {
     const d = done.get(r.id) || {};
     if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => d[m]).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
     return d[mode] ? 'done' : 'none';
   };
-  const fill = (r) => (r.demolished ? 'transparent' : level(r) === 'none' ? 'var(--none)' : 'var(--done)');
-  const op = (r) => (!r.demolished && level(r) === 'some' ? 0.45 : 1);
-
-  function showTip(ev, r) {
-    const d = done.get(r.id) || {};
-    tip.selectAll('*').remove();
-    tip.append('b').text(r.name ? `${r.name}, ${r.address}` : r.address);
-    [r.year ? `Built ${r.year}` : '', r.architect ? `Architect ${r.architect}` : '',
-      r.demolished ? 'Demolished' : `Backpack ${d.backpack ? '✓' : '–'}   Drone ${d.drone ? '✓' : '–'}   Sanborn ${d.sanborn ? '✓' : '–'}`]
-      .filter(Boolean).forEach((l) => tip.append('span').text(l));
-    const [mx, my] = d3.pointer(ev, el);
-    const left = mx + 254 > el.clientWidth ? mx - 250 : mx + 14;
-    tip.style('display', 'block').style('left', `${Math.max(4, left)}px`).style('top', `${Math.max(4, my - 10)}px`);
+  function styleFor(r) {
+    const lv = level(r), isSel = r.id === sel;
+    const fillCol = lv === 'none' ? css('--none') : css('--done');
+    const overlay = !!year;
+    return {
+      color: isSel ? css('--ink') : overlay ? css('--navy') : r.demolished ? css('--muted') : css('--card-bg'),
+      weight: isSel ? 3 : overlay ? 1.2 : 0.8,
+      dashArray: r.demolished ? '3 3' : null,
+      fillColor: fillCol,
+      fillOpacity: r.demolished ? 0 : overlay ? (lv === 'none' ? 0 : 0.35) : lv === 'some' ? 0.45 : lv === 'none' ? 0.75 : 0.9,
+    };
   }
-  const hideTip = () => tip.style('display', 'none');
+  function tipHtml(r) {
+    const d = done.get(r.id) || {};
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const lines = [r.year ? `Built ${r.year}` : '', r.architect ? `Architect ${r.architect}` : '',
+      r.demolished ? 'Demolished' : `Backpack ${d.backpack ? '✓' : '–'} · Drone ${d.drone ? '✓' : '–'} · Sanborn ${d.sanborn ? '✓' : '–'}`].filter(Boolean);
+    return `<b>${esc(r.name ? `${r.name}, ${r.address}` : r.address)}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}`;
+  }
 
+  const outlines = L.geoJSON({ type: 'FeatureCollection', features: A.features.filter((f) => f.properties.area) }, {
+    interactive: false,
+    style: (f) => ({ color: css('--steel'), weight: 2.5, fill: false, dashArray: f.properties.area === 'Downtown' ? '6 5' : null }),
+  }).addTo(map);
+  const parcelLayers = new Map();
+  const parcels = L.geoJSON({ type: 'FeatureCollection', features: rows.filter((r) => r.shape).map((r) => ({
+    type: 'Feature', properties: { id: r.id }, geometry: { type: 'Polygon', coordinates: [r.shape.split(';').map((p) => p.split(',').map(Number))] } })) }, {
+    style: (f) => styleFor(byId.get(f.properties.id)),
+    onEachFeature: (f, layer) => {
+      const r = byId.get(f.properties.id); parcelLayers.set(r.id, layer);
+      layer.bindTooltip(() => tipHtml(r), { className: 'btip', sticky: true, direction: 'top', offset: [0, -6] });
+      layer.on('click', () => select(r.id));
+    },
+  }).addTo(map);
+  const dots = rows.filter((r) => !r.shape).map((r) => {
+    const m = L.circleMarker([r.lat, r.lon], { radius: 6, ...styleFor(r), color: css('--muted'), weight: 1 }).addTo(map);
+    m.bindTooltip(() => tipHtml(r), { className: 'btip', direction: 'top', offset: [0, -6] });
+    m.on('click', () => select(r.id)); parcelLayers.set(r.id, m); return [r, m];
+  });
+  const labels = A.features.filter((f) => f.properties.area).map((f) => {
+    const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
+    const g = L.geoJSON(f); return L.tooltip({ permanent: true, direction: 'center', className: 'area-label', interactive: false })
+      .setLatLng(g.getBounds().getCenter()).setContent(names[f.properties.area]);
+  });
+
+  function restyle() {
+    parcels.eachLayer((layer) => { const r = byId.get(layer.feature.properties.id); layer.setStyle(styleFor(r)); if (r.id === sel) layer.bringToFront(); });
+    dots.forEach(([r, m]) => m.setStyle({ ...styleFor(r), color: r.id === sel ? css('--ink') : css('--muted'), weight: r.id === sel ? 2.5 : 1 }));
+  }
   function select(id) { sel = id; restyle(); detail(); }
 
   function detail() {
     const box = document.getElementById('detail');
-    const r = rows.find((x) => x.id === sel);
+    const r = byId.get(sel);
     if (!r) return;
     const d = done.get(r.id) || {};
     const h3 = document.createElement('h3'); h3.textContent = r.name ? `${r.name}, ${r.address}` : r.address;
@@ -323,58 +383,50 @@
     const ul = document.createElement('ul'); ul.className = 'status';
     METHODS.forEach(([m, label]) => {
       const li = document.createElement('li'); const dot = document.createElement('i'); dot.className = 'dot' + (d[m] ? ' on' : '');
-      const s = document.createElement('span'); s.textContent = label + ' ';
+      const sp = document.createElement('span'); sp.textContent = label + ' ';
       const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : 'not yet';
-      s.appendChild(sm); li.append(dot, s); ul.appendChild(li);
+      sp.appendChild(sm); li.append(dot, sp); ul.appendChild(li);
     });
-    box.replaceChildren(h3, dl, ul);
+    const parts = [h3, dl, ul];
+    const sh = S[r.id];
+    const head = document.createElement('p'); head.className = 'sheets-h'; head.textContent = 'Sanborn sheets';
+    const list = document.createElement('ul'); list.className = 'sheets';
+    if (sh) {
+      ['1906', '1911', '1922', '1929'].forEach((y) => {
+        const li = document.createElement('li'); const yr = document.createElement('span'); yr.className = 'yr'; yr.textContent = y; li.appendChild(yr);
+        if (sh[y]) {
+          const t = document.createElement('span'); t.textContent = `sheet ${sh[y].sheet}`; li.appendChild(t);
+          if (sh[y].url && /^https:\/\//.test(sh[y].url)) { const a = document.createElement('a'); a.href = sh[y].url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'view scan'; li.appendChild(a); }
+          const b = document.createElement('a'); b.href = '#map'; b.textContent = 'show on map';
+          b.addEventListener('click', (e) => { e.preventDefault(); setYear(y); }); li.appendChild(b);
+        } else { const t = document.createElement('span'); t.className = 'none'; t.textContent = 'not on this map'; li.appendChild(t); }
+        list.appendChild(li);
+      });
+      parts.push(head, list);
+    } else {
+      const t = document.createElement('p'); t.className = 'hint'; t.textContent = 'Sanborn sheets are indexed for the West End so far. Use the year switch above the map to see the sheets here.';
+      parts.push(head, t);
+    }
+    box.replaceChildren(...parts);
   }
 
-  function restyle() {
-    const k = t.k;
-    gS.selectAll('path').attr('stroke-width', 0.8 / k);
-    gA.selectAll('path').attr('stroke-width', 2 / k);
-    gP.selectAll('path').style('fill', (d) => fill(d.row)).style('fill-opacity', (d) => op(d.row))
-      .style('stroke', (d) => (d.id === sel ? 'var(--fg)' : d.row.demolished ? 'var(--muted)' : 'var(--panel)'))
-      .attr('stroke-width', (d) => (d.id === sel ? 2.4 : 0.6) / k);
-    gP.selectAll('path').filter((d) => d.id === sel).raise();
-    gD.selectAll('circle').attr('r', 4.5 / Math.sqrt(k)).style('fill', fill).style('fill-opacity', op)
-      .style('stroke', (d) => (d.id === sel ? 'var(--fg)' : 'var(--muted)')).attr('stroke-width', (d) => (d.id === sel ? 2 : 1) / k);
-    gL.selectAll('text').attr('font-size', 12 / k);
-  }
-
-  function draw() {
-    w = Math.max(280, el.clientWidth); h = Math.round(Math.max(360, Math.min(640, w * 0.78)));
-    svg.attr('viewBox', `0 0 ${w} ${h}`).attr('height', h);
-    proj = d3.geoIdentity().reflectY(true).fitExtent([[10, 10], [w - 10, h - 10]], { type: 'FeatureCollection', features: outlines });
-    path = d3.geoPath(proj);
-    gS.selectAll('path').data(streets).join('path').attr('d', path).style('fill', 'none').style('stroke', 'var(--street)');
-    gA.selectAll('path').data(outlines).join('path').attr('d', path).style('fill', 'none').style('stroke', 'var(--ref)')
-      .attr('stroke-dasharray', (d) => (d.properties.area === 'Downtown' ? '5 4' : null)).style('pointer-events', 'none');
-    gP.selectAll('path').data(parcels, (d) => d.id).join('path').attr('d', path).style('cursor', 'pointer')
-      .attr('stroke-dasharray', (d) => (d.row.demolished ? '2 2' : null))
-      .on('mousemove', (ev, d) => showTip(ev, d.row)).on('mouseleave', hideTip).on('click', (ev, d) => select(d.id));
-    gD.selectAll('circle').data(dots, (d) => d.id).join('circle')
-      .attr('cx', (d) => proj([d.lon * K, d.lat])[0]).attr('cy', (d) => proj([d.lon * K, d.lat])[1]).style('cursor', 'pointer')
-      .on('mousemove', showTip).on('mouseleave', hideTip).on('click', (ev, d) => select(d.id));
-    const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
-    const anchor = (f) => {
-      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-      const big = polys.map((p) => p[0].map((c) => proj(c))).sort((a, b) => Math.abs(d3.polygonArea(b)) - Math.abs(d3.polygonArea(a)))[0];
-      return d3.polygonCentroid(big);
-    };
-    gL.selectAll('text').data(outlines).join('text').text((d) => names[d.properties.area])
-      .attr('x', (d) => anchor(d)[0]).attr('y', (d) => anchor(d)[1]).attr('text-anchor', 'middle')
-      .style('fill', 'var(--muted)').style('font-weight', 600).style('pointer-events', 'none')
-      .style('paint-order', 'stroke').style('stroke', 'var(--panel)').style('stroke-width', '3px').style('fill', 'var(--fg)');
-    svg.call(zoom.transform, d3.zoomIdentity);
+  const op = document.getElementById('sanborn-opacity');
+  function setYear(y) {
+    year = y;
+    Object.values(sbLayers).forEach((l) => map.removeLayer(l));
+    if (y) sbLayer(y).setOpacity(Number(op.value)).addTo(map);
+    op.disabled = !y;
+    document.querySelectorAll('#sanborn button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.year === y)));
     restyle();
   }
+  document.querySelectorAll('#sanborn button').forEach((b) => b.addEventListener('click', () => setYear(b.dataset.year)));
+  op.addEventListener('input', () => { if (year) sbLayer(year).setOpacity(Number(op.value)); });
 
   msg.remove();
-  draw();
-  let lastW = el.clientWidth;
-  new ResizeObserver(() => { if (Math.abs(el.clientWidth - lastW) > 2) { lastW = el.clientWidth; draw(); } }).observe(el);
+  map.fitBounds(outlines.getBounds(), { padding: [10, 10] });
+  const toggleLabels = () => labels.forEach((l) => (map.getZoom() < 16.5 ? l.addTo(map) : l.remove()));
+  map.on('zoomend', toggleLabels); toggleLabels();
+  new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('map'));
 
   document.querySelectorAll('#mode button').forEach((btn) => btn.addEventListener('click', () => {
     mode = btn.dataset.mode;
@@ -382,15 +434,10 @@
     restyle(); if (sel) detail();
   }));
   document.getElementById('zoomto').addEventListener('change', (e) => {
-    const f = outlines.find((o) => o.properties.area === e.target.value);
-    let nt = d3.zoomIdentity;
-    if (f) {
-      const [[x0, y0], [x1, y1]] = path.bounds(f);
-      const k = Math.min(14, 0.9 / Math.max((x1 - x0) / w, (y1 - y0) / h));
-      nt = d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
-    }
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    (reduce ? svg : svg.transition().duration(600)).call(zoom.transform, nt);
+    let target = outlines.getBounds();
+    outlines.eachLayer((l) => { if (l.feature.properties.area === e.target.value) target = l.getBounds(); });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) map.fitBounds(target, { padding: [10, 10] });
+    else map.flyToBounds(target, { padding: [10, 10], duration: 0.6 });
   });
 })();
 </script>

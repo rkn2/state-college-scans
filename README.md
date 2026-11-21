@@ -9,3 +9,8 @@ Live page: https://rkn2.github.io/state-college-scans/
 Building data comes from Borough of State College GIS (contributing properties, historic districts, draft zoning
 areas, 1982 county survey), with owner and sale fields removed. The page is refreshed from the lab's working dashboard
 as work goes on.
+
+Historic Sanborn fire insurance maps (1906, 1911, 1922, 1929) can be switched on under the buildings. They are the
+georeferenced mosaics from the Penn State University Libraries' Donald W. Hamer Center for Maps and Geospatial
+Information, loaded live from its ArcGIS tile services. Sheet numbers and scan links for West End buildings come from
+the lab's Sanborn index. Basemap Esri.
