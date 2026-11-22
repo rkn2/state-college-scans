@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>State College Scan Coverage</title>
 <meta name="description" content="Which State College historic buildings have been laser scanned, photographed from the air and matched to Sanborn maps, by HARB priority area.">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,6 +104,21 @@
   .sheets li { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }
   .sheets .yr { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); min-width: 2.6em; }
   .sheets .none { color: var(--text-secondary); }
+  .ctlrow { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: end; }
+  .ctl { display: grid; gap: 2px; }
+  .ctl > span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
+  .ctl[hidden] { display: none; }
+  .ctl select { min-width: 9rem; }
+  .ctl input[type=range] { width: 120px; accent-color: var(--navy); height: 30px; }
+  .ctl.push { margin-left: auto; }
+  #tilt { position: absolute; top: 10px; right: 10px; z-index: 3; box-shadow: 0 1px 4px rgb(10 34 64 / .2); }
+  .btn3d { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.9rem; border: 1px solid var(--border); border-radius: 5px; background: var(--card-bg); color: var(--text); cursor: pointer; }
+  .btn3d[aria-pressed="true"] { background: var(--navy); color: var(--paper); border-color: var(--navy); }
+  .maplibregl-popup-content { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font: 0.8rem/1.4 var(--sans); box-shadow: 0 4px 16px rgb(10 34 64 / .18); }
+  .maplibregl-popup-tip { display: none; }
+  .maplibregl-popup-content b { display: block; font-weight: 500; color: var(--ink); }
+  .maplibregl-popup-content span { display: block; color: var(--text-secondary); }
+  .maplibregl-ctrl-attrib { font-size: 10px; }
   .area-label { background: transparent; border: 0; box-shadow: none; font-weight: 600; font-size: 12px; color: var(--ink); text-shadow: 0 0 3px var(--card-bg), 0 0 3px var(--card-bg), 0 0 3px var(--card-bg); }
   .area-label::before { display: none; }
   .sheets-h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
@@ -155,7 +170,6 @@
       <li><a href="#areas">Areas</a></li>
       <li><a href="#map-section">Map</a></li>
       <li><a href="#about">About</a></li>
-      <li><a href="3d.html">3D (password)</a></li>
     </ul>
   </div>
 </nav>
@@ -204,48 +218,43 @@
     <h2>Building by building</h2>
     <div class="mapwrap">
       <div class="mapcol">
-        <div class="controls">
-          <div class="seg" role="group" aria-label="Show on the map" id="mode">
-            <button type="button" data-mode="backpack" aria-pressed="true">Backpack scan</button>
-            <button type="button" data-mode="drone" aria-pressed="false">Drone roof</button>
-            <button type="button" data-mode="sanborn" aria-pressed="false">Sanborn maps</button>
-            <button type="button" data-mode="all" aria-pressed="false">All three</button>
-          </div>
-          <select id="zoomto" aria-label="Zoom to an area">
-            <option value="">All areas</option>
-            <option value="West End">West End</option>
-            <option value="Holmes-Foster/Highlands">Holmes-Foster/Highlands</option>
-            <option value="College Heights">College Heights</option>
-            <option value="Downtown">Older downtown</option>
-          </select>
+        <div class="ctlrow">
+          <label class="ctl"><span>Color buildings by</span>
+            <select id="mode">
+              <option value="backpack">Backpack scan</option>
+              <option value="drone">Drone roof</option>
+              <option value="sanborn">Sanborn maps</option>
+              <option value="all">All three</option>
+            </select></label>
+          <label class="ctl"><span>Background</span>
+            <select id="bg">
+              <option value="map">Map</option>
+              <option value="nm-2026-08-29">Aerial, Aug 2026</option>
+              <option value="nm-2023-04-19">Aerial, Apr 2023 (leaf-off)</option>
+              <option value="sb-1906">Sanborn map, 1906</option>
+              <option value="sb-1911">Sanborn map, 1911</option>
+              <option value="sb-1922">Sanborn map, 1922</option>
+              <option value="sb-1929">Sanborn map, 1929</option>
+            </select></label>
+          <label class="ctl" id="opwrap" hidden><span>Opacity</span><input type="range" id="op" min="0.2" max="1" step="0.05" value="0.9"></label>
+          <label class="ctl"><span>Zoom to</span>
+            <select id="zoomto">
+              <option value="">All areas</option>
+              <option value="West End">West End</option>
+              <option value="Holmes-Foster/Highlands">Holmes-Foster/Highlands</option>
+              <option value="College Heights">College Heights</option>
+              <option value="Downtown">Older downtown</option>
+            </select></label>
         </div>
-        <div class="sanborn-row">
-          <span class="lbl">Sanborn map</span>
-          <div class="seg" role="group" aria-label="Sanborn map year" id="sanborn">
-            <button type="button" data-year="" aria-pressed="true">Off</button>
-            <button type="button" data-year="1906" aria-pressed="false">1906</button>
-            <button type="button" data-year="1911" aria-pressed="false">1911</button>
-            <button type="button" data-year="1922" aria-pressed="false">1922</button>
-            <button type="button" data-year="1929" aria-pressed="false">1929</button>
-          </div>
-          <label class="opacity" for="sanborn-opacity">Opacity <input type="range" id="sanborn-opacity" min="0.2" max="1" step="0.05" value="0.85" disabled></label>
-        </div>
-        <div class="sanborn-row">
-          <span class="lbl">Aerial photo</span>
-          <div class="seg" role="group" aria-label="Nearmap aerial photo" id="aerial">
-            <button type="button" data-date="" aria-pressed="true">Off</button>
-            <button type="button" data-date="2026-08-29" aria-pressed="false">Aug 2026</button>
-            <button type="button" data-date="2023-04-19" aria-pressed="false">Apr 2023, leaf-off</button>
-          </div>
-        </div>
-        <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p></div>
+        <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><button type="button" class="btn3d" id="tilt" aria-pressed="true">3D view</button></div>
         <ul class="legend">
           <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
           <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
           <li><i class="sw" style="background:var(--done)"></i>Collected</li>
           <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
+          <li><i class="sw" style="background:#c8102e"></i>Selected</li>
         </ul>
-        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details. With a Sanborn year on, buildings show as outlines so the sheet reads through. Sanborn maps from the Penn State University Libraries' Donald W. Hamer Center for Maps and Geospatial Information; the 1906 set ends at Burrowes Street. Aerial photos &copy; Nearmap, covering the four areas only.</p>
+        <p class="hint">West End buildings are 3D models fitted to public lidar from March 2019. Right-drag or two-finger drag to tilt and turn. Downtown buildings are dots. Tap a building for details. Sanborn maps from the Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information. Aerial photos &copy; Nearmap.</p>
       </div>
       <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
     </div>
@@ -271,16 +280,18 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 (async function () {
   const AREAS = ['West End', 'Holmes-Foster/Highlands', 'College Heights', 'Downtown'];
   const METHODS = [['backpack', 'Exterior backpack scan'], ['drone', 'Drone roof views'], ['sanborn', 'Matched to Sanborn maps']];
   const fmt = d3.format(',');
   const msg = document.getElementById('msg');
-  let B, A, C, S;
+  let B, A, C, S, F;
   try {
-    [B, A, C, S] = await Promise.all(['data/buildings.json', 'data/areas.json', 'data/coverage.json', 'data/sanborn.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
+    [B, A, C, S, F] = await Promise.all(['data/buildings.json', 'data/areas.json', 'data/coverage.json', 'data/sanborn.json', 'data/westend_footprints.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
   } catch (e) { msg.textContent = 'The map data did not load. Try reloading the page.'; return; }
   const rows = B.rows;
   const byId = new Map(rows.map((r) => [r.id, r]));
@@ -305,104 +316,196 @@
     });
   });
 
-  let mode = 'backpack', sel = null, year = '';
+  let mode = 'backpack', sel = null, bg = 'map';
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-  const dark = matchMedia('(prefers-color-scheme: dark)');
-  const map = L.map('map', { zoomSnap: 0.25, minZoom: 13, maxZoom: 20, attributionControl: true, center: [40.7935, -77.864], zoom: 15 });
-  const gray = dark.matches ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base';
-  const base = L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${gray}/MapServer/tile/{z}/{y}/{x}`, {
-    maxZoom: 20, maxNativeZoom: 16, attribution: 'Basemap Esri, HERE, Garmin, &copy; OpenStreetMap contributors' }).addTo(map);
-  const SB = 'https://tiles.arcgis.com/tiles/l8WMRXQvoma7xG3I/arcgis/rest/services/';
-  const sbName = { 1906: 'StateCollege_1906_FireInsuranceMap', 1911: 'StateCollege_1911_SanbornFireInsuranceMap', 1922: 'StateCollege_1922_SanbornFireInsuranceMap', 1929: 'StateCollege_1929_SanbornFireInsuranceMap' };
-  const sbLayers = {};
-  map.createPane('sanborn'); map.getPane('sanborn').style.zIndex = 350;
-  map.createPane('aerial'); map.getPane('aerial').style.zIndex = 300;
-  const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-  const aerialLayers = {};
-  const aerialLayer = (d) => aerialLayers[d] || (aerialLayers[d] = L.tileLayer(`nearmap/${d}/{z}/{x}/{y}.jpg`, {
-    pane: 'aerial', minZoom: 13, maxZoom: 20, minNativeZoom: 14, maxNativeZoom: 20, errorTileUrl: BLANK,
-    attribution: `Aerial imagery &copy; Nearmap, ${d}` }));
-  let aerial = '';
-  function setAerial(d) {
-    aerial = d;
-    Object.values(aerialLayers).forEach((l) => map.removeLayer(l));
-    if (d) aerialLayer(d).addTo(map);
-    document.querySelectorAll('#aerial button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.date === d)));
-    restyle();
-  }
-  document.querySelectorAll('#aerial button').forEach((b) => b.addEventListener('click', () => setAerial(b.dataset.date)));
-  const sbLayer = (y) => sbLayers[y] || (sbLayers[y] = L.tileLayer(`${SB}${sbName[y]}/MapServer/tile/{z}/{y}/{x}`, {
-    pane: 'sanborn', maxZoom: 20, maxNativeZoom: 19, opacity: 0.85,
-    attribution: `Sanborn map ${y}, Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information` }));
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const SEL = '#c8102e';
+  const LON0 = -77.8658, LAT0 = 40.7884;  // frame of the 3D model (sites/model3d/frame.py)
+  const meta = new Map(F.features.filter((f) => f.properties.id).map((f) => [f.properties.id, f.properties]));
+  const modelled = new Set(meta.keys());
 
   const level = (r) => {
+    if (r.demolished) return 'gone';
     const d = done.get(r.id) || {};
     if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => d[m]).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
     return d[mode] ? 'done' : 'none';
   };
-  function styleFor(r) {
-    const lv = level(r), isSel = r.id === sel;
-    const fillCol = lv === 'none' ? css('--none') : css('--done');
-    const overlay = !!year || !!aerial;
-    return {
-      color: isSel ? css('--ink') : overlay ? css('--navy') : r.demolished ? css('--muted') : css('--card-bg'),
-      weight: isSel ? 3 : overlay ? 1.2 : 0.8,
-      dashArray: r.demolished ? '3 3' : null,
-      fillColor: fillCol,
-      fillOpacity: r.demolished ? 0 : overlay ? (lv === 'none' ? 0 : 0.35) : lv === 'some' ? 0.45 : lv === 'none' ? 0.75 : 0.9,
-    };
-  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function tipHtml(r) {
     const d = done.get(r.id) || {};
-    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const lines = [r.year ? `Built ${r.year}` : '', r.architect ? `Architect ${r.architect}` : '',
       r.demolished ? 'Demolished' : `Backpack ${d.backpack ? '✓' : '–'} · Drone ${d.drone ? '✓' : '–'} · Sanborn ${d.sanborn ? '✓' : '–'}`].filter(Boolean);
     return `<b>${esc(r.name ? `${r.name}, ${r.address}` : r.address)}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}`;
   }
 
-  const outlines = L.geoJSON({ type: 'FeatureCollection', features: A.features.filter((f) => f.properties.area) }, {
-    interactive: false,
-    style: (f) => ({ color: css('--steel'), weight: 2.5, fill: false, dashArray: f.properties.area === 'Downtown' ? '6 5' : null }),
-  }).addTo(map);
-  const parcelLayers = new Map();
-  const parcels = L.geoJSON({ type: 'FeatureCollection', features: rows.filter((r) => r.shape).map((r) => ({
-    type: 'Feature', properties: { id: r.id }, geometry: { type: 'Polygon', coordinates: [r.shape.split(';').map((p) => p.split(',').map(Number))] } })) }, {
-    style: (f) => styleFor(byId.get(f.properties.id)),
-    onEachFeature: (f, layer) => {
-      const r = byId.get(f.properties.id); parcelLayers.set(r.id, layer);
-      layer.bindTooltip(() => tipHtml(r), { className: 'btip', sticky: true, direction: 'top', offset: [0, -6] });
-      layer.on('click', () => select(r.id));
-    },
-  }).addTo(map);
-  const dots = rows.filter((r) => !r.shape).map((r) => {
-    const m = L.circleMarker([r.lat, r.lon], { radius: 6, ...styleFor(r), color: css('--muted'), weight: 1 }).addTo(map);
-    m.bindTooltip(() => tipHtml(r), { className: 'btip', direction: 'top', offset: [0, -6] });
-    m.on('click', () => select(r.id)); parcelLayers.set(r.id, m); return [r, m];
+  const parcelFC = () => ({ type: 'FeatureCollection', features: rows.filter((r) => r.shape).map((r) => ({
+    type: 'Feature', properties: { id: r.id, lvl: level(r), sel: r.id === sel, m: modelled.has(r.id) },
+    geometry: { type: 'Polygon', coordinates: [r.shape.split(';').map((p) => p.split(',').map(Number))] } })) });
+  const dotFC = () => ({ type: 'FeatureCollection', features: rows.filter((r) => !r.shape).map((r) => ({
+    type: 'Feature', properties: { id: r.id, lvl: level(r), sel: r.id === sel }, geometry: { type: 'Point', coordinates: [r.lon, r.lat] } })) });
+  const areaFC = { type: 'FeatureCollection', features: A.features.filter((f) => f.properties.area) };
+
+  const abs = (u) => location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + u;
+  const gray = dark ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base';
+  const SB = 'https://tiles.arcgis.com/tiles/l8WMRXQvoma7xG3I/arcgis/rest/services/';
+  const sbName = { 1906: 'StateCollege_1906_FireInsuranceMap', 1911: 'StateCollege_1911_SanbornFireInsuranceMap', 1922: 'StateCollege_1922_SanbornFireInsuranceMap', 1929: 'StateCollege_1929_SanbornFireInsuranceMap' };
+  const hamer = 'Sanborn maps: Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information';
+  const sources = {
+    base: { type: 'raster', tiles: [`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${gray}/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 16, attribution: 'Basemap Esri, HERE, Garmin, © OpenStreetMap contributors' },
+    areas: { type: 'geojson', data: areaFC },
+    parcels: { type: 'geojson', data: parcelFC() },
+    dots: { type: 'geojson', data: dotFC() },
+    foot: { type: 'geojson', data: F },
+  };
+  const bgLayers = [];
+  ['2026-08-29', '2023-04-19'].forEach((d) => {
+    sources[`nm-${d}`] = { type: 'raster', tiles: [abs(`nearmap/${d}/{z}/{x}/{y}.jpg`)], tileSize: 256, minzoom: 14, maxzoom: 20,
+      bounds: [-77.884, 40.782, -77.848, 40.803], attribution: `Aerial imagery © Nearmap, ${d}` };
+    bgLayers.push(`nm-${d}`);
   });
-  const labels = A.features.filter((f) => f.properties.area).map((f) => {
-    const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
-    const g = L.geoJSON(f); return L.tooltip({ permanent: true, direction: 'center', className: 'area-label', interactive: false })
-      .setLatLng(g.getBounds().getCenter()).setContent(names[f.properties.area]);
+  Object.entries(sbName).forEach(([y, n]) => {
+    sources[`sb-${y}`] = { type: 'raster', tiles: [`${SB}${n}/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 19, attribution: `${hamer} (${y})` };
+    bgLayers.push(`sb-${y}`);
   });
 
-  function restyle() {
-    parcels.eachLayer((layer) => { const r = byId.get(layer.feature.properties.id); layer.setStyle(styleFor(r)); if (r.id === sel) layer.bringToFront(); });
-    dots.forEach(([r, m]) => m.setStyle({ ...styleFor(r), color: r.id === sel ? css('--ink') : css('--muted'), weight: r.id === sel ? 2.5 : 1 }));
+  const fillCol = ['match', ['get', 'lvl'], 'done', css('--done'), 'some', css('--done'), 'gone', 'rgba(0,0,0,0)', css('--none')];
+  const map = new maplibregl.Map({
+    container: 'map', center: [-77.864, 40.7925], zoom: 14.6, pitch: 50, bearing: -20, maxPitch: 70, attributionControl: { compact: true },
+    style: { version: 8, sources, layers: [
+      { id: 'base', type: 'raster', source: 'base' },
+      ...bgLayers.map((id) => ({ id, type: 'raster', source: id, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.9 } })),
+      { id: 'parcels-fill', type: 'fill', source: 'parcels', filter: ['!', ['get', 'm']],
+        paint: { 'fill-color': fillCol, 'fill-opacity': ['match', ['get', 'lvl'], 'some', 0.45, 'none', 0.75, 0.9] } },
+      { id: 'parcels-line', type: 'line', source: 'parcels',
+        paint: { 'line-color': ['case', ['get', 'sel'], SEL, ['get', 'm'], css('--steel'), ['==', ['get', 'lvl'], 'gone'], css('--muted'), css('--card-bg')],
+          'line-width': ['case', ['get', 'sel'], 3, ['get', 'm'], 0.5, 0.8], 'line-opacity': ['case', ['get', 'm'], 0.5, 1] } },
+      { id: 'foot-hit', type: 'fill', source: 'foot', paint: { 'fill-color': '#000', 'fill-opacity': 0 } },
+      { id: 'areas', type: 'line', source: 'areas', paint: { 'line-color': css('--steel'), 'line-width': 2.5, 'line-dasharray': [1, 0] } },
+      { id: 'dots', type: 'circle', source: 'dots',
+        paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 4, 18, 9], 'circle-color': fillCol,
+          'circle-stroke-color': ['case', ['get', 'sel'], SEL, css('--muted')], 'circle-stroke-width': ['case', ['get', 'sel'], 3, 1] } },
+    ] },
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+
+  // the West End 3D model, drawn with three.js in the map's own WebGL context
+  const origin = maplibregl.MercatorCoordinate.fromLngLat([LON0, LAT0], 0);
+  const scale = origin.meterInMercatorCoordinateUnits();
+  let model = null;
+  const colorFor = (id) => {
+    const r = byId.get(id);
+    if (id === sel) return SEL;
+    if (!r) return css('--none');
+    const lv = level(r);
+    return lv === 'done' ? css('--done') : lv === 'some' ? '#7f97c4' : dark ? '#3a4a66' : '#d5d9df';
+  };
+  function recolor() {
+    if (!model) return;
+    model.traverse((o) => { if (o.isMesh) { const id = byId.has(o.name) ? o.name : (o.parent && o.parent.name); o.material.color.set(colorFor(id)); } });
+    map.triggerRepaint();
   }
-  function select(id) { sel = id; restyle(); detail(); }
+  const layer3d = {
+    id: 'westend-3d', type: 'custom', renderingMode: '3d',
+    onAdd(m, gl) {
+      this.camera = new THREE.Camera(); this.scene = new THREE.Scene();
+      this.scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa0aa, 0.8));
+      const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(-60, 120, 80); this.scene.add(sun);
+      new THREE.GLTFLoader().load('data/westend_3d.glb', (g) => {
+        model = g.scene;
+        model.traverse((o) => { if (o.isMesh) { o.geometry.computeVertexNormals(); o.material = new THREE.MeshPhongMaterial({ color: 0xe9ebee, flatShading: true, shininess: 0, side: THREE.DoubleSide }); } });
+        this.scene.add(model); recolor();
+      });
+      this.renderer = new THREE.WebGLRenderer({ canvas: m.getCanvas(), context: gl, antialias: true });
+      this.renderer.autoClear = false;
+    },
+    render(gl, matrix) {
+      const rot = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+      const l = new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new THREE.Vector3(scale, -scale, scale)).multiply(rot);
+      this.camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix).multiply(l);
+      this.renderer.resetState(); this.renderer.render(this.scene, this.camera);
+    },
+  };
+
+  const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
+  const hitLayers = ['dots', 'foot-hit', 'parcels-fill'];
+  let ready = false;
+  const init = () => {
+    if (ready) return; ready = true;
+    map.addLayer(layer3d);
+    msg.remove();
+    const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
+    areaFC.features.forEach((f) => {
+      const b = new maplibregl.LngLatBounds(); const add = (c) => (typeof c[0] === 'number' ? b.extend(c) : c.forEach(add)); add(f.geometry.coordinates);
+      const el = document.createElement('div'); el.className = 'area-label'; el.textContent = names[f.properties.area];
+      new maplibregl.Marker({ element: el }).setLngLat(b.getCenter()).addTo(map);
+    });
+    map.on('mousemove', (e) => {
+      const f = map.queryRenderedFeatures(e.point, { layers: hitLayers })[0];
+      map.getCanvas().style.cursor = f ? 'pointer' : '';
+      const r = f && byId.get(f.properties.id);
+      if (r) pop.setLngLat(e.lngLat).setHTML(tipHtml(r)).addTo(map); else pop.remove();
+    });
+    map.on('mouseout', () => pop.remove());
+    map.on('click', (e) => {
+      const f = map.queryRenderedFeatures(e.point, { layers: hitLayers })[0];
+      if (f && byId.get(f.properties.id)) select(f.properties.id);
+    });
+  };
+  map.on('style.load', init);
+  map.on('load', init);
+  if (map.isStyleLoaded()) init();
+
+  function refresh() {
+    if (map.getSource('parcels')) { map.getSource('parcels').setData(parcelFC()); map.getSource('dots').setData(dotFC()); }
+    recolor();
+  }
+  function select(id) { sel = id; refresh(); detail(); }
+
+  function setBackground(v) {
+    bg = v;
+    bgLayers.forEach((id) => map.setLayoutProperty(id, 'visibility', id === v ? 'visible' : 'none'));
+    document.getElementById('opwrap').hidden = v === 'map';
+    if (v !== 'map') map.setPaintProperty(v, 'raster-opacity', Number(document.getElementById('op').value));
+    document.getElementById('bg').value = v;
+  }
+  document.getElementById('bg').addEventListener('change', (e) => setBackground(e.target.value));
+  document.getElementById('op').addEventListener('input', (e) => { if (bg !== 'map') map.setPaintProperty(bg, 'raster-opacity', Number(e.target.value)); });
+  document.getElementById('mode').addEventListener('change', (e) => { mode = e.target.value; refresh(); if (sel) detail(); });
+  const tilt = document.getElementById('tilt');
+  tilt.addEventListener('click', () => {
+    const on = tilt.getAttribute('aria-pressed') !== 'true';
+    tilt.setAttribute('aria-pressed', String(on));
+    map.easeTo({ pitch: on ? 50 : 0, bearing: on ? -20 : 0, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600 });
+  });
+  document.getElementById('zoomto').addEventListener('change', (e) => {
+    const b = new maplibregl.LngLatBounds(); const add = (c) => (typeof c[0] === 'number' ? b.extend(c) : c.forEach(add));
+    areaFC.features.filter((f) => !e.target.value || f.properties.area === e.target.value).forEach((f) => add(f.geometry.coordinates));
+    map.fitBounds(b, { padding: 30, pitch: map.getPitch(), bearing: map.getBearing(), duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 });
+  });
+  new ResizeObserver(() => map.resize()).observe(document.getElementById('map'));
 
   function detail() {
     const box = document.getElementById('detail');
     const r = byId.get(sel);
     if (!r) return;
     const d = done.get(r.id) || {};
+    const mm = meta.get(r.id);
     const h3 = document.createElement('h3'); h3.textContent = r.name ? `${r.name}, ${r.address}` : r.address;
+    const links = document.createElement('p'); links.className = 'hint';
+    const sv = document.createElement('a'); sv.target = '_blank'; sv.rel = 'noopener';
+    sv.href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lon}`;
+    sv.textContent = 'Open in Google Street View'; links.appendChild(sv);
     const dl = document.createElement('dl');
     const tierText = { 1: 'tier 1', 2: 'tier 2', 3: 'tier 3', 0: 'alongside' }[r.tier];
+    const ft = (m) => `${m.toFixed(1)} m (${Math.round(m * 3.281)} ft)`;
     [['Area', `${r.area === 'Downtown' ? 'Older downtown' : r.area} (${tierText})`],
       ['Listed as', r.kind + (r.on1982 && r.kind !== '1982 county survey' ? ', also on the 1982 survey' : '')],
       ['Built', r.year ? String(r.year) : ''], ['Architect', r.architect], ['Builder', r.builder],
-      ['Stories', r.stories ? String(Number(r.stories)) : ''], ['Status', r.demolished ? 'Demolished' : '']]
+      ['Stories', r.stories ? String(Number(r.stories)) : ''],
+      ['Ridge height', mm && mm.ridge_h ? ft(mm.ridge_h) : ''],
+      ['Roof', mm && mm.roof_type ? mm.roof_type.charAt(0).toUpperCase() + mm.roof_type.slice(1) : ''],
+      ['Model fit', mm && mm.quality ? mm.quality.charAt(0).toUpperCase() + mm.quality.slice(1) : ''],
+      ['Status', r.demolished ? 'Demolished' : '']]
       .filter(([, v]) => v).forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
     const ul = document.createElement('ul'); ul.className = 'status';
     METHODS.forEach(([m, label]) => {
@@ -411,63 +514,28 @@
       const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : 'not yet';
       sp.appendChild(sm); li.append(dot, sp); ul.appendChild(li);
     });
-    const links = document.createElement('p'); links.className = 'hint';
-    const sv = document.createElement('a'); sv.target = '_blank'; sv.rel = 'noopener';
-    sv.href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lon}`;
-    sv.textContent = 'Open in Google Street View';
-    links.appendChild(sv);
     const parts = [h3, links, dl, ul];
     const sh = S[r.id];
     const head = document.createElement('p'); head.className = 'sheets-h'; head.textContent = 'Sanborn sheets';
-    const list = document.createElement('ul'); list.className = 'sheets';
     if (sh) {
+      const list = document.createElement('ul'); list.className = 'sheets';
       ['1906', '1911', '1922', '1929'].forEach((y) => {
         const li = document.createElement('li'); const yr = document.createElement('span'); yr.className = 'yr'; yr.textContent = y; li.appendChild(yr);
         if (sh[y]) {
           const t = document.createElement('span'); t.textContent = `sheet ${sh[y].sheet}`; li.appendChild(t);
           if (sh[y].url && /^https:\/\//.test(sh[y].url)) { const a = document.createElement('a'); a.href = sh[y].url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'view scan'; li.appendChild(a); }
           const b = document.createElement('a'); b.href = '#map'; b.textContent = 'show on map';
-          b.addEventListener('click', (e) => { e.preventDefault(); setYear(y); }); li.appendChild(b);
+          b.addEventListener('click', (e) => { e.preventDefault(); setBackground(`sb-${y}`); }); li.appendChild(b);
         } else { const t = document.createElement('span'); t.className = 'none'; t.textContent = 'not on this map'; li.appendChild(t); }
         list.appendChild(li);
       });
       parts.push(head, list);
     } else {
-      const t = document.createElement('p'); t.className = 'hint'; t.textContent = 'Sanborn sheets are indexed for the West End so far. Use the year switch above the map to see the sheets here.';
+      const t = document.createElement('p'); t.className = 'hint'; t.textContent = 'Sanborn sheets are indexed for the West End so far. Pick a Sanborn year under Background to see the sheets here.';
       parts.push(head, t);
     }
     box.replaceChildren(...parts);
   }
-
-  const op = document.getElementById('sanborn-opacity');
-  function setYear(y) {
-    year = y;
-    Object.values(sbLayers).forEach((l) => map.removeLayer(l));
-    if (y) sbLayer(y).setOpacity(Number(op.value)).addTo(map);
-    op.disabled = !y;
-    document.querySelectorAll('#sanborn button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.year === y)));
-    restyle();
-  }
-  document.querySelectorAll('#sanborn button').forEach((b) => b.addEventListener('click', () => setYear(b.dataset.year)));
-  op.addEventListener('input', () => { if (year) sbLayer(year).setOpacity(Number(op.value)); });
-
-  msg.remove();
-  map.fitBounds(outlines.getBounds(), { padding: [10, 10] });
-  const toggleLabels = () => labels.forEach((l) => (map.getZoom() < 16.5 ? l.addTo(map) : l.remove()));
-  map.on('zoomend', toggleLabels); toggleLabels();
-  new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById('map'));
-
-  document.querySelectorAll('#mode button').forEach((btn) => btn.addEventListener('click', () => {
-    mode = btn.dataset.mode;
-    document.querySelectorAll('#mode button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
-    restyle(); if (sel) detail();
-  }));
-  document.getElementById('zoomto').addEventListener('change', (e) => {
-    let target = outlines.getBounds();
-    outlines.eachLayer((l) => { if (l.feature.properties.area === e.target.value) target = l.getBounds(); });
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) map.fitBounds(target, { padding: [10, 10] });
-    else map.flyToBounds(target, { padding: [10, 10], duration: 0.6 });
-  });
 })();
 </script>
 </body>

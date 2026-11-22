@@ -15,6 +15,9 @@ georeferenced mosaics from the Penn State University Libraries' Donald W. Hamer 
 Information, loaded live from its ArcGIS tile services. Sheet numbers and scan links for West End buildings come from
 the lab's Sanborn index. Basemap Esri.
 
+West End buildings are 3D massing and roof models fitted to USGS 3DEP lidar (March 2019) on Borough of State College
+building footprints, drawn in the same map with MapLibre GL and three.js (`data/westend_3d.glb`).
+
 Aerial photos are Nearmap vertical imagery from August 29, 2026 and April 19, 2023 (leaf-off), downloaded as tiles over
 the four areas and served from this repo so no API key is used on the page. Imagery &copy; Nearmap, published with the
 lab's approval.
