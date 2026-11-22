@@ -390,7 +390,21 @@
   // the West End 3D model, drawn with three.js in the map's own WebGL context
   const origin = maplibregl.MercatorCoordinate.fromLngLat([LON0, LAT0], 0);
   const scale = origin.meterInMercatorCoordinateUnits();
-  let model = null;
+  let model = null, lastProj = null;
+  const ray = new THREE.Raycaster();
+  function pick3d(point) {
+    if (!model || !lastProj) return null;
+    const c = map.getCanvas();
+    const x = (point.x / c.clientWidth) * 2 - 1, y = 1 - (point.y / c.clientHeight) * 2;
+    const inv = lastProj.clone().invert();
+    const a = new THREE.Vector3(x, y, -1).applyMatrix4(inv), b = new THREE.Vector3(x, y, 1).applyMatrix4(inv);
+    ray.set(a, b.sub(a).normalize());
+    const hit = ray.intersectObject(model, true)[0];
+    if (!hit) return null;
+    let o = hit.object;
+    while (o && !byId.has(o.name)) o = o.parent;
+    return o ? o.name : null;
+  }
   const colorFor = (id) => {
     const r = byId.get(id);
     if (id === sel) return SEL;
@@ -421,6 +435,7 @@
       const rot = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
       const l = new THREE.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new THREE.Vector3(scale, -scale, scale)).multiply(rot);
       this.camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix).multiply(l);
+      lastProj = this.camera.projectionMatrix.clone();
       this.renderer.resetState(); this.renderer.render(this.scene, this.camera);
     },
   };
@@ -439,16 +454,25 @@
       const el = document.createElement('div'); el.className = 'area-label'; el.textContent = names[f.properties.area];
       new maplibregl.Marker({ element: el }).setLngLat(b.getCenter()).addTo(map);
     });
+    const pickAt = (pt) => {
+      const id3 = pick3d(pt); if (id3) return id3;
+      const f = map.queryRenderedFeatures(pt, { layers: hitLayers })[0];
+      return f && byId.has(f.properties.id) ? f.properties.id : null;
+    };
     map.on('mousemove', (e) => {
-      const f = map.queryRenderedFeatures(e.point, { layers: hitLayers })[0];
-      map.getCanvas().style.cursor = f ? 'pointer' : '';
-      const r = f && byId.get(f.properties.id);
+      const id = pickAt(e.point);
+      map.getCanvas().style.cursor = id ? 'pointer' : '';
+      const r = id && byId.get(id);
       if (r) pop.setLngLat(e.lngLat).setHTML(tipHtml(r)).addTo(map); else pop.remove();
     });
     map.on('mouseout', () => pop.remove());
     map.on('click', (e) => {
-      const f = map.queryRenderedFeatures(e.point, { layers: hitLayers })[0];
-      if (f && byId.get(f.properties.id)) select(f.properties.id);
+      const id = pickAt(e.point);
+      if (!id) return;
+      select(id);
+      const r = byId.get(id);
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      map.easeTo({ center: [r.lon, r.lat], zoom: Math.max(map.getZoom(), 18), duration: reduce ? 0 : 700 });
     });
   };
   map.on('style.load', init);
