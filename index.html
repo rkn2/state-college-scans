@@ -296,11 +296,13 @@
   const rows = B.rows;
   const byId = new Map(rows.map((r) => [r.id, r]));
   const done = new Map(Object.entries(C.ticks || {}));
+  // Sanborn counts as done when a student ticked it or the building has sheets in the Sanborn index (data/sanborn.json)
+  const has = (id, m) => !!((done.get(id) || {})[m] || (m === 'sanborn' && S[id] && Object.keys(S[id]).length));
   document.getElementById('asof').textContent = C.asOf ? d3.utcFormat('%B %-d, %Y')(new Date(C.asOf + 'T12:00:00Z')) : '–';
 
   const tally = (list, area) => {
     const live = list.filter((b) => !b.demolished);
-    const n = (m) => live.filter((b) => done.get(b.id) && done.get(b.id)[m]).length;
+    const n = (m) => live.filter((b) => has(b.id, m)).length;
     return { area, total: live.length, backpack: n('backpack'), drone: n('drone'), sanborn: n('sanborn') };
   };
   const cov = new Map([...AREAS.map((a) => tally(rows.filter((b) => b.area === a), a)), tally(rows, 'All areas')].map((r) => [r.area, r]));
@@ -326,13 +328,12 @@
 
   const level = (r) => {
     if (r.demolished) return 'gone';
-    const d = done.get(r.id) || {};
-    if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => d[m]).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
-    return d[mode] ? 'done' : 'none';
+    if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => has(r.id, m)).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
+    return has(r.id, mode) ? 'done' : 'none';
   };
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function tipHtml(r) {
-    const d = done.get(r.id) || {};
+    const d = { backpack: has(r.id, 'backpack'), drone: has(r.id, 'drone'), sanborn: has(r.id, 'sanborn') };
     const lines = [r.year ? `Built ${r.year}` : '', r.architect ? `Architect ${r.architect}` : '',
       r.demolished ? 'Demolished' : `Backpack ${d.backpack ? '✓' : '–'} · Drone ${d.drone ? '✓' : '–'} · Sanborn ${d.sanborn ? '✓' : '–'}`].filter(Boolean);
     return `<b>${esc(r.name ? `${r.name}, ${r.address}` : r.address)}</b>${lines.map((l) => `<span>${esc(l)}</span>`).join('')}`;
@@ -370,7 +371,7 @@
 
   const fillCol = ['match', ['get', 'lvl'], 'done', css('--done'), 'some', css('--done'), 'gone', 'rgba(0,0,0,0)', css('--none')];
   const map = new maplibregl.Map({
-    container: 'map', center: [-77.864, 40.7925], zoom: 14.6, pitch: 50, bearing: -20, maxPitch: 70, attributionControl: { compact: true },
+    container: 'map', center: [-77.8655, 40.7895], zoom: 16.2, pitch: 55, bearing: -20, maxPitch: 70, attributionControl: { compact: true },
     style: { version: 8, sources, layers: [
       { id: 'base', type: 'raster', source: 'base' },
       { id: 'parcels-fill', type: 'fill', source: 'parcels', filter: ['!', ['get', 'm']],
@@ -411,7 +412,7 @@
     if (id === sel) return SEL;
     if (!r) return css('--none');
     const lv = level(r);
-    return lv === 'done' ? css('--done') : lv === 'some' ? '#7f97c4' : dark ? '#3a4a66' : '#d5d9df';
+    return lv === 'done' ? css('--done') : lv === 'some' ? '#7f97c4' : dark ? '#5d6f8f' : '#9aa6b5';
   };
   function recolor() {
     if (!model) return;
@@ -537,9 +538,9 @@
       .filter(([, v]) => v).forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
     const ul = document.createElement('ul'); ul.className = 'status';
     METHODS.forEach(([m, label]) => {
-      const li = document.createElement('li'); const dot = document.createElement('i'); dot.className = 'dot' + (d[m] ? ' on' : '');
+      const li = document.createElement('li'); const dot = document.createElement('i'); dot.className = 'dot' + (has(r.id, m) ? ' on' : '');
       const sp = document.createElement('span'); sp.textContent = label + ' ';
-      const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : 'not yet';
+      const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : has(r.id, m) ? 'sheets matched' : 'not yet';
       sp.appendChild(sm); li.append(dot, sp); ul.appendChild(li);
     });
     const parts = [h3, links, dl, ul];
