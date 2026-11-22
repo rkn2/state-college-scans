@@ -525,6 +525,18 @@
   });
   new ResizeObserver(() => map.resize()).observe(document.getElementById('map'));
 
+  // deep link, e.g. ?b=c957&sanborn=1922 opens on that building with that Sanborn year (used by the checking page)
+  map.once('idle', () => {
+    const q = new URLSearchParams(location.search), id = q.get('b'), yr = q.get('sanborn');
+    if (yr && ['1906', '1911', '1922', '1929'].includes(yr)) setMode('sanborn', yr);
+    if (id && byId.has(id)) {
+      const r = byId.get(id);
+      select(id);
+      map.jumpTo({ center: [r.lon, r.lat], zoom: 18.5, pitch: 0, bearing: 0 });
+      requestAnimationFrame(() => document.getElementById('map').scrollIntoView({ block: 'start' }));
+    }
+  });
+
   function detail() {
     const box = document.getElementById('detail');
     const r = byId.get(sel);
