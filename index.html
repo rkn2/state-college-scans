@@ -229,6 +229,14 @@
           </div>
           <label class="opacity" for="sanborn-opacity">Opacity <input type="range" id="sanborn-opacity" min="0.2" max="1" step="0.05" value="0.85" disabled></label>
         </div>
+        <div class="sanborn-row">
+          <span class="lbl">Aerial photo</span>
+          <div class="seg" role="group" aria-label="Nearmap aerial photo" id="aerial">
+            <button type="button" data-date="" aria-pressed="true">Off</button>
+            <button type="button" data-date="2026-08-29" aria-pressed="false">Aug 2026</button>
+            <button type="button" data-date="2023-04-19" aria-pressed="false">Apr 2023, leaf-off</button>
+          </div>
+        </div>
         <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p></div>
         <ul class="legend">
           <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
@@ -236,7 +244,7 @@
           <li><i class="sw" style="background:var(--done)"></i>Collected</li>
           <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
         </ul>
-        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details. With a Sanborn year on, buildings show as outlines so the sheet reads through. Sanborn maps from the Penn State University Libraries' Donald W. Hamer Center for Maps and Geospatial Information; the 1906 set ends at Burrowes Street.</p>
+        <p class="hint">Scroll or pinch to zoom, drag to move. Downtown buildings are dots. Tap a building for details. With a Sanborn year on, buildings show as outlines so the sheet reads through. Sanborn maps from the Penn State University Libraries' Donald W. Hamer Center for Maps and Geospatial Information; the 1906 set ends at Burrowes Street. Aerial photos &copy; Nearmap, covering the four areas only.</p>
       </div>
       <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
     </div>
@@ -307,6 +315,21 @@
   const sbName = { 1906: 'StateCollege_1906_FireInsuranceMap', 1911: 'StateCollege_1911_SanbornFireInsuranceMap', 1922: 'StateCollege_1922_SanbornFireInsuranceMap', 1929: 'StateCollege_1929_SanbornFireInsuranceMap' };
   const sbLayers = {};
   map.createPane('sanborn'); map.getPane('sanborn').style.zIndex = 350;
+  map.createPane('aerial'); map.getPane('aerial').style.zIndex = 300;
+  const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const aerialLayers = {};
+  const aerialLayer = (d) => aerialLayers[d] || (aerialLayers[d] = L.tileLayer(`nearmap/${d}/{z}/{x}/{y}.jpg`, {
+    pane: 'aerial', minZoom: 13, maxZoom: 20, minNativeZoom: 14, maxNativeZoom: 20, errorTileUrl: BLANK,
+    attribution: `Aerial imagery &copy; Nearmap, ${d}` }));
+  let aerial = '';
+  function setAerial(d) {
+    aerial = d;
+    Object.values(aerialLayers).forEach((l) => map.removeLayer(l));
+    if (d) aerialLayer(d).addTo(map);
+    document.querySelectorAll('#aerial button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.date === d)));
+    restyle();
+  }
+  document.querySelectorAll('#aerial button').forEach((b) => b.addEventListener('click', () => setAerial(b.dataset.date)));
   const sbLayer = (y) => sbLayers[y] || (sbLayers[y] = L.tileLayer(`${SB}${sbName[y]}/MapServer/tile/{z}/{y}/{x}`, {
     pane: 'sanborn', maxZoom: 20, maxNativeZoom: 19, opacity: 0.85,
     attribution: `Sanborn map ${y}, Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information` }));
@@ -319,7 +342,7 @@
   function styleFor(r) {
     const lv = level(r), isSel = r.id === sel;
     const fillCol = lv === 'none' ? css('--none') : css('--done');
-    const overlay = !!year;
+    const overlay = !!year || !!aerial;
     return {
       color: isSel ? css('--ink') : overlay ? css('--navy') : r.demolished ? css('--muted') : css('--card-bg'),
       weight: isSel ? 3 : overlay ? 1.2 : 0.8,
