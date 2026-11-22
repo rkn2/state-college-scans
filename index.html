@@ -386,6 +386,7 @@
     ] },
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+  window.scMap = map;
 
   // the West End 3D model, drawn with three.js in the map's own WebGL context
   const origin = maplibregl.MercatorCoordinate.fromLngLat([LON0, LAT0], 0);
