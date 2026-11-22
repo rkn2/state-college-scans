@@ -564,7 +564,9 @@
         const li = document.createElement('li'); const yr = document.createElement('span'); yr.className = 'yr'; yr.textContent = y; li.appendChild(yr);
         if (sh[y]) {
           const t = document.createElement('span'); t.textContent = `sheet ${sh[y].sheet}`; li.appendChild(t);
-          if (sh[y].url && /^https:\/\//.test(sh[y].url)) { const a = document.createElement('a'); a.href = sh[y].url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'view scan'; li.appendChild(a); }
+          const urls = (sh[y].url || '').split(/\s+/).filter((u) => /^https:\/\//.test(u)), nums = String(sh[y].sheet).split(/\s*&\s*/);
+          urls.forEach((u, i) => { const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener';
+            a.textContent = urls.length > 1 ? `view ${nums[i] || i + 1}` : 'view scan'; li.appendChild(a); });
           const b = document.createElement('a'); b.href = '#map'; b.textContent = 'show on map';
           b.addEventListener('click', (e) => { e.preventDefault(); setMode('sanborn', y); }); li.appendChild(b);
         } else { const t = document.createElement('span'); t.className = 'none'; t.textContent = 'not on this map'; li.appendChild(t); }
