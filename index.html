@@ -373,7 +373,6 @@
     container: 'map', center: [-77.864, 40.7925], zoom: 14.6, pitch: 50, bearing: -20, maxPitch: 70, attributionControl: { compact: true },
     style: { version: 8, sources, layers: [
       { id: 'base', type: 'raster', source: 'base' },
-      ...bgLayers.map((id) => ({ id, type: 'raster', source: id, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.9 } })),
       { id: 'parcels-fill', type: 'fill', source: 'parcels', filter: ['!', ['get', 'm']],
         paint: { 'fill-color': fillCol, 'fill-opacity': ['match', ['get', 'lvl'], 'some', 0.45, 'none', 0.75, 0.9] } },
       { id: 'parcels-line', type: 'line', source: 'parcels',
@@ -428,10 +427,11 @@
 
   const pop = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
   const hitLayers = ['dots', 'foot-hit', 'parcels-fill'];
-  let ready = false;
+  let ready = false, pendingBg = null;
   const init = () => {
     if (ready) return; ready = true;
     map.addLayer(layer3d);
+    if (pendingBg) { pendingBg(); pendingBg = null; }
     msg.remove();
     const names = { 'West End': '1 West End', 'Holmes-Foster/Highlands': '2 Holmes-Foster/Highlands', 'College Heights': '3 College Heights', Downtown: 'Downtown' };
     areaFC.features.forEach((f) => {
@@ -463,13 +463,16 @@
 
   function setBackground(v) {
     bg = v;
-    bgLayers.forEach((id) => map.setLayoutProperty(id, 'visibility', id === v ? 'visible' : 'none'));
-    document.getElementById('opwrap').hidden = v === 'map';
-    if (v !== 'map') map.setPaintProperty(v, 'raster-opacity', Number(document.getElementById('op').value));
     document.getElementById('bg').value = v;
+    document.getElementById('opwrap').hidden = v === 'map';
+    const apply = () => {
+      if (map.getLayer('bg')) map.removeLayer('bg');
+      if (v !== 'map') map.addLayer({ id: 'bg', type: 'raster', source: v, paint: { 'raster-opacity': Number(document.getElementById('op').value) } }, 'parcels-fill');
+    };
+    if (ready) apply(); else pendingBg = apply;
   }
   document.getElementById('bg').addEventListener('change', (e) => setBackground(e.target.value));
-  document.getElementById('op').addEventListener('input', (e) => { if (bg !== 'map') map.setPaintProperty(bg, 'raster-opacity', Number(e.target.value)); });
+  document.getElementById('op').addEventListener('input', (e) => { if (map.getLayer('bg')) map.setPaintProperty('bg', 'raster-opacity', Number(e.target.value)); });
   document.getElementById('mode').addEventListener('change', (e) => { mode = e.target.value; refresh(); if (sel) detail(); });
   const tilt = document.getElementById('tilt');
   tilt.addEventListener('click', () => {
