@@ -107,7 +107,7 @@
   .ctlrow { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: end; }
   .ctl { display: grid; gap: 2px; }
   .ctl > span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
-  .ctl[hidden] { display: none; }
+  .ctl[hidden], .legend[hidden] { display: none; }
   .ctl select { min-width: 9rem; }
   .ctl input[type=range] { width: 120px; accent-color: var(--navy); height: 30px; }
   .ctl.push { margin-left: auto; }
@@ -219,23 +219,19 @@
     <div class="mapwrap">
       <div class="mapcol">
         <div class="ctlrow">
-          <label class="ctl"><span>Color buildings by</span>
+          <label class="ctl"><span>Show</span>
             <select id="mode">
-              <option value="backpack">Backpack scan</option>
-              <option value="drone">Drone roof</option>
-              <option value="sanborn">Sanborn maps</option>
-              <option value="all">All three</option>
+              <optgroup label="What we've collected">
+                <option value="backpack">Backpack scans</option>
+                <option value="drone">Drone roofs</option>
+                <option value="all">All three</option>
+              </optgroup>
+              <optgroup label="Map layers">
+                <option value="sanborn">Sanborn map</option>
+                <option value="aerial">Aerial photo</option>
+              </optgroup>
             </select></label>
-          <label class="ctl"><span>Background</span>
-            <select id="bg">
-              <option value="map">Map</option>
-              <option value="nm-2026-08-29">Aerial, Aug 2026</option>
-              <option value="nm-2023-04-19">Aerial, Apr 2023 (leaf-off)</option>
-              <option value="sb-1906">Sanborn map, 1906</option>
-              <option value="sb-1911">Sanborn map, 1911</option>
-              <option value="sb-1922">Sanborn map, 1922</option>
-              <option value="sb-1929">Sanborn map, 1929</option>
-            </select></label>
+          <label class="ctl" id="yrwrap" hidden><span>Year</span><select id="yr"></select></label>
           <label class="ctl" id="opwrap" hidden><span>Opacity</span><input type="range" id="op" min="0.2" max="1" step="0.05" value="0.9"></label>
           <label class="ctl"><span>Zoom to</span>
             <select id="zoomto">
@@ -247,7 +243,7 @@
             </select></label>
         </div>
         <div class="map" id="map"><p class="msg" id="msg">Loading the map…</p><button type="button" class="btn3d" id="tilt" aria-pressed="true">3D view</button></div>
-        <ul class="legend">
+        <ul class="legend" id="legend">
           <li><i class="sw" style="background:var(--none)"></i>Not yet</li>
           <li><i class="sw" style="background:var(--done);opacity:.45"></i>Some (All three view)</li>
           <li><i class="sw" style="background:var(--done)"></i>Collected</li>
@@ -318,7 +314,9 @@
     });
   });
 
-  let mode = 'backpack', sel = null, bg = 'map';
+  let mode = 'backpack', sel = null;
+  const LAYER_MODES = { sanborn: [['1929', '1929'], ['1922', '1922'], ['1911', '1911'], ['1906', '1906']], aerial: [['nm-2026-08-29', 'Aug 2026'], ['nm-2023-04-19', 'Apr 2023, leaf-off']] };
+  const isLayerMode = () => mode in LAYER_MODES;
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   const SEL = '#c8102e';
@@ -328,6 +326,7 @@
 
   const level = (r) => {
     if (r.demolished) return 'gone';
+    if (isLayerMode()) return 'plain';
     if (mode === 'all') { const n = ['backpack', 'drone', 'sanborn'].filter((m) => has(r.id, m)).length; return n === 3 ? 'done' : n ? 'some' : 'none'; }
     return has(r.id, mode) ? 'done' : 'none';
   };
@@ -369,15 +368,15 @@
     bgLayers.push(`sb-${y}`);
   });
 
-  const fillCol = ['match', ['get', 'lvl'], 'done', css('--done'), 'some', css('--done'), 'gone', 'rgba(0,0,0,0)', css('--none')];
+  const fillCol = ['match', ['get', 'lvl'], 'done', css('--done'), 'some', css('--done'), 'gone', 'rgba(0,0,0,0)', 'plain', 'rgba(0,0,0,0)', css('--none')];
   const map = new maplibregl.Map({
     container: 'map', center: [-77.8655, 40.7895], zoom: 16.2, pitch: 55, bearing: -20, maxPitch: 70, attributionControl: { compact: true },
     style: { version: 8, sources, layers: [
       { id: 'base', type: 'raster', source: 'base' },
       { id: 'parcels-fill', type: 'fill', source: 'parcels', filter: ['!', ['get', 'm']],
-        paint: { 'fill-color': fillCol, 'fill-opacity': ['match', ['get', 'lvl'], 'some', 0.45, 'none', 0.75, 0.9] } },
+        paint: { 'fill-color': fillCol, 'fill-opacity': ['match', ['get', 'lvl'], 'some', 0.45, 'none', 0.75, 'plain', 0, 0.9] } },
       { id: 'parcels-line', type: 'line', source: 'parcels',
-        paint: { 'line-color': ['case', ['get', 'sel'], SEL, ['get', 'm'], css('--steel'), ['==', ['get', 'lvl'], 'gone'], css('--muted'), css('--card-bg')],
+        paint: { 'line-color': ['case', ['get', 'sel'], SEL, ['get', 'm'], css('--steel'), ['==', ['get', 'lvl'], 'gone'], css('--muted'), ['==', ['get', 'lvl'], 'plain'], css('--steel'), css('--card-bg')],
           'line-width': ['case', ['get', 'sel'], 3, ['get', 'm'], 0.5, 0.8], 'line-opacity': ['case', ['get', 'm'], 0.5, 1] } },
       { id: 'foot-hit', type: 'fill', source: 'foot', paint: { 'fill-color': '#000', 'fill-opacity': 0 } },
       { id: 'areas', type: 'line', source: 'areas', paint: { 'line-color': css('--steel'), 'line-width': 2.5, 'line-dasharray': [1, 0] } },
@@ -416,7 +415,9 @@
   };
   function recolor() {
     if (!model) return;
-    model.traverse((o) => { if (o.isMesh) { const id = byId.has(o.name) ? o.name : (o.parent && o.parent.name); o.material.color.set(colorFor(id)); } });
+    const see = isLayerMode();  // let the Sanborn sheet or aerial show through the houses
+    model.traverse((o) => { if (o.isMesh) { const id = byId.has(o.name) ? o.name : (o.parent && o.parent.name);
+      o.material.color.set(colorFor(id)); o.material.transparent = see && id !== sel; o.material.opacity = see && id !== sel ? 0.4 : 1; o.material.depthWrite = !o.material.transparent; } });
     map.triggerRepaint();
   }
   const layer3d = {
@@ -487,9 +488,7 @@
   }
   function select(id) { sel = id; refresh(); detail(); }
 
-  function setBackground(v) {
-    bg = v;
-    document.getElementById('bg').value = v;
+  function setBackground(v) {  // v is a raster source id, or 'map' for the plain basemap
     document.getElementById('opwrap').hidden = v === 'map';
     const apply = () => {
       if (map.getLayer('bg')) map.removeLayer('bg');
@@ -497,9 +496,22 @@
     };
     if (ready) apply(); else pendingBg = apply;
   }
-  document.getElementById('bg').addEventListener('change', (e) => setBackground(e.target.value));
+  const yrSel = document.getElementById('yr');
+  function setMode(m, year) {
+    mode = m; document.getElementById('mode').value = m;
+    const opts = LAYER_MODES[m];
+    document.getElementById('yrwrap').hidden = !opts;
+    document.getElementById('legend').hidden = !!opts;
+    if (opts) {
+      yrSel.replaceChildren(...opts.map(([v, t]) => new Option(t, v)));
+      yrSel.value = year && opts.some(([v]) => v === year) ? year : opts[0][0];
+      setBackground(m === 'sanborn' ? `sb-${yrSel.value}` : yrSel.value);
+    } else setBackground('map');
+    refresh(); if (sel) detail();
+  }
+  yrSel.addEventListener('change', () => setMode(mode, yrSel.value));
   document.getElementById('op').addEventListener('input', (e) => { if (map.getLayer('bg')) map.setPaintProperty('bg', 'raster-opacity', Number(e.target.value)); });
-  document.getElementById('mode').addEventListener('change', (e) => { mode = e.target.value; refresh(); if (sel) detail(); });
+  document.getElementById('mode').addEventListener('change', (e) => setMode(e.target.value));
   const tilt = document.getElementById('tilt');
   tilt.addEventListener('click', () => {
     const on = tilt.getAttribute('aria-pressed') !== 'true';
@@ -554,7 +566,7 @@
           const t = document.createElement('span'); t.textContent = `sheet ${sh[y].sheet}`; li.appendChild(t);
           if (sh[y].url && /^https:\/\//.test(sh[y].url)) { const a = document.createElement('a'); a.href = sh[y].url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'view scan'; li.appendChild(a); }
           const b = document.createElement('a'); b.href = '#map'; b.textContent = 'show on map';
-          b.addEventListener('click', (e) => { e.preventDefault(); setBackground(`sb-${y}`); }); li.appendChild(b);
+          b.addEventListener('click', (e) => { e.preventDefault(); setMode('sanborn', y); }); li.appendChild(b);
         } else { const t = document.createElement('span'); t.className = 'none'; t.textContent = 'not on this map'; li.appendChild(t); }
         list.appendChild(li);
       });
