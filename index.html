@@ -410,7 +410,12 @@
       const sm = document.createElement('small'); sm.textContent = d[m] ? `done ${d3.utcFormat('%b %-d, %Y')(new Date(d[m] + 'T12:00:00Z'))}` : 'not yet';
       sp.appendChild(sm); li.append(dot, sp); ul.appendChild(li);
     });
-    const parts = [h3, dl, ul];
+    const links = document.createElement('p'); links.className = 'hint';
+    const sv = document.createElement('a'); sv.target = '_blank'; sv.rel = 'noopener';
+    sv.href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lon}`;
+    sv.textContent = 'Open in Google Street View';
+    links.appendChild(sv);
+    const parts = [h3, links, dl, ul];
     const sh = S[r.id];
     const head = document.createElement('p'); head.className = 'sheets-h'; head.textContent = 'Sanborn sheets';
     const list = document.createElement('ul'); list.className = 'sheets';
