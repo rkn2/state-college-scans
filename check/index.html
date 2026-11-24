@@ -123,13 +123,13 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
 
   <div class="who">
     <label for="me">I'm <select id="me"><option value="">Pick your name</option></select></label>
+    <label for="code" id="codeWrap" hidden>Lab code <input id="code" type="password" autocomplete="off" size="12"></label>
     <div class="people" id="people"></div>
   </div>
 
   <div class="saveinfo">
-    <p id="saveText">Your checks are kept in this browser on this computer. At the end of each session, download them and drag the file into the sanborn-checks folder on the H3D-StateCollege Team.</p>
-    <button type="button" class="btn" id="dl">Download my checks</button>
-    <a class="btn" id="folder" href="https://pennstateoffice365.sharepoint.com/sites/H3D-StateCollege/Shared%20Documents/General/sanborn-checks" target="_blank" rel="noopener">Open the Team folder</a>
+    <p id="saveText">Connecting to the lab…</p>
+    <button type="button" class="btn" id="dl">Download a copy</button>
     <label class="btn filebtn">Load a checks file<input type="file" id="load" accept=".csv,text/csv"></label>
   </div>
 
@@ -185,9 +185,16 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   try { items = (await (await fetch('queue.json')).json()).items; }
   catch (e) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'The list of buildings did not load. Reload the page.' })); return; }
   const byKey = new Map(items.map((d) => [d.k, d]));
-  // who has what: assignments.json is rewritten every Monday and Thursday from the checks files in the Team folder
-  let A = { people: [], assign: {}, done: {}, next: '' };
+  // who has what comes live from the lab server, which also takes each save and hands out the next block when someone
+  // runs low; assignments.json is the daily snapshot the page falls back to if the server can't be reached
+  const API = new URLSearchParams(location.search).get('api') || 'https://becca-mcp.tail3a44c1.ts.net/sanborn';
+  let A = { people: [], assign: {}, done: {}, next: '' }, live = false;
   try { const r = await fetch('assignments.json', { cache: 'no-cache' }); if (r.ok) A = await r.json(); } catch (e) { /* page still works without assignments */ }
+  async function pull() {
+    try { const r = await fetch(API + '/state', { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); A = await r.json(); live = true; }
+    catch (e) { live = false; }
+  }
+  await pull();
   const COLOR = Object.fromEntries((A.people || []).map((p) => [p.name, p.color]));
   const ME_KEY = 'sanborn-checker';
   let me = ''; try { me = localStorage.getItem(ME_KEY) || ''; } catch (e) { /* no storage */ }
@@ -206,7 +213,7 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     $('people').replaceChildren(...(A.people || []).map((p) => {
       const left = Object.entries(A.assign || {}).filter(([k, n]) => n === p.name && !checks.has(k)).length;
       return el('span', {}, dot(p.name), el('b', { textContent: p.name }), `${left} to go`);
-    }), A.updated ? el('span', { textContent: `Handed out ${niceDate(A.updated)}, next batch ${niceDate(A.next)}` }) : null);
+    }), el('span', { textContent: live ? 'Live. New buildings come as soon as you run low.' : 'Not connected to the lab right now, showing the last snapshot.' }));
   }
 
   function renderProgress() {
@@ -266,6 +273,10 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     const sheetWrap = el('label', {}, 'Correct sheet number', sheetIn);
     const saveBtn = el('button', { className: 'save', type: 'button', textContent: c ? 'Save change' : 'Save and go to next' });
     const status = el('div', { className: 'status' });
+    const taken = (A.assign?.[d.k] && A.assign[d.k] !== me) ? A.assign[d.k] : (A.done?.[d.k] && A.done[d.k] !== me && !c) ? A.done[d.k] : '';
+    const blocked = !me || !!taken;
+    if (!me) status.textContent = 'Pick your name at the top first.';
+    else if (taken) status.textContent = `This one is ${taken}'s. Pick one of yours from My buildings.`;
     const vbtns = Object.entries(VERDICT).map(([v, t]) => {
       const b = el('button', { type: 'button', textContent: t }); b.dataset.v = v;
       b.onclick = () => { verdict = v; sync(); };
@@ -274,14 +285,15 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     function sync() {
       vbtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === verdict)));
       sheetWrap.hidden = verdict !== 'wrong';
-      saveBtn.disabled = !canWrite || !verdict || (verdict === 'wrong' && !sheetIn.value.trim()) || (verdict === 'unsure' && !noteIn.value.trim());
+      saveBtn.disabled = !canWrite || blocked || !verdict || (verdict === 'wrong' && !sheetIn.value.trim()) || (verdict === 'unsure' && !noteIn.value.trim());
     }
     sheetIn.oninput = sync; noteIn.oninput = sync;
     saveBtn.onclick = () => {
       checks.set(d.k, { verdict, sheet: verdict === 'wrong' ? sheetIn.value.trim() : '', note: noteIn.value.trim(), item: d.k, id: d.id, year: d.year, index_sheet: d.sheet, at: new Date().toISOString(), checker: me });
-      if (!persist()) { status.textContent = 'Saved for now, but this browser will not keep it after you close the page. Download your checks before you leave.'; }
+      persist();
       if (!c) { const vis = visible().filter((x) => x.k !== d.k && !statusOf(x)); cur = vis[0]?.k || null; }
       render();
+      send(d.k).then(afterSend);
     };
 
     const who = c ? el('div', { className: 'status', textContent: `Checked ${new Date(c.at).toLocaleDateString()}: ${VERDICT[c.verdict]}${c.sheet ? ', sheet ' + c.sheet : ''}. Change it below if needed.` }) : null;
@@ -339,8 +351,39 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   });
   $('fSearch').oninput = () => { cur = null; render(); };
 
-  // checks live in this browser; the CSV download is what reaches Becca
-  const KEY = 'sanborn-checks-v1';
+  // checks are kept in this browser and sent to the lab server as each one is saved; unsent ones retry
+  const KEY = 'sanborn-checks-v1', UNSENT_KEY = 'sanborn-unsent', CODE_KEY = 'sanborn-labcode';
+  let code = '', unsent = new Set(), notice = '';
+  try { code = localStorage.getItem(CODE_KEY) || ''; unsent = new Set(JSON.parse(localStorage.getItem(UNSENT_KEY) || '[]')); } catch (e) { /* no storage */ }
+  const keepUnsent = () => { try { localStorage.setItem(UNSENT_KEY, JSON.stringify([...unsent])); } catch (e) { /* no storage */ } };
+  async function send(k) {
+    const c = checks.get(k); if (!c) return 'gone';
+    unsent.add(k); keepUnsent();
+    if (!code) return 'code';
+    try {
+      const r = await fetch(API + '/check', { method: 'POST', headers: { 'X-Lab-Code': code, 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401) { code = ''; try { localStorage.removeItem(CODE_KEY); } catch (e) { /* */ } return 'code'; }
+      if (r.status === 409) { checks.delete(k); persist(); unsent.delete(k); keepUnsent(); if (j.assign) A = j; notice = `${byKey.get(k)?.address || 'That building'} is ${j.owner}'s, so your check on it wasn't kept.`; return 'owner'; }
+      if (!r.ok) throw new Error(r.status);
+      unsent.delete(k); keepUnsent();
+      if (j.assign) { A = j; live = true; }
+      if (j.added) notice = `You got ${j.added} more buildings nearby.`;
+      return 'ok';
+    } catch (e) { live = false; return 'offline'; }
+  }
+  async function flush() { for (const k of [...unsent]) { const r = await send(k); if (r === 'code' || r === 'offline') break; } }
+  function renderSync() {
+    $('codeWrap').hidden = !!code;
+    const n = unsent.size;
+    $('saveText').textContent = (notice ? notice + ' ' : '') + (!code ? 'Type the lab code at the top (Becca sent it) so your checks can save to the lab.'
+      : n ? `${n} check${n === 1 ? '' : 's'} waiting to send. They're safe in this browser and will send when the lab can be reached.`
+      : live ? 'Connected to the lab. Each check saves there as soon as you click Save.' : "Can't reach the lab right now. Your checks are kept in this browser and will send when it's back.");
+  }
+  // after a send, refresh everything except the card, so whatever the student is typing on the next building stays put
+  function afterSend(res) { if (res === 'owner') render(); else { renderPeople(); renderProgress(); renderList(); } renderSync(); }
+  $('code').onchange = async () => { code = $('code').value.trim(); try { localStorage.setItem(CODE_KEY, code); } catch (e) { /* */ } $('code').value = ''; await flush(); afterSend(); };
+  setInterval(async () => { await pull(); if (unsent.size) await flush(); afterSend(); }, 60000);
   const COLS = ['item', 'id', 'year', 'index_sheet', 'verdict', 'sheet', 'note', 'at', 'checker'];
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(checks))); return true; } catch (e) { return false; } }
   try { Object.entries(JSON.parse(localStorage.getItem(KEY) || '{}')).forEach(([k, v]) => { if (byKey.has(k)) checks.set(k, v); }); } catch (e) { /* no storage: the page still works for this visit */ }
@@ -350,7 +393,7 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     const csv = [COLS.join(','), ...[...checks.values()].map((c) => COLS.map((k) => q(k === 'checker' ? (c.checker || me) : c[k])).join(','))].join('\n');
     const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `sanborn-checks-${me ? me + '-' : ''}${new Date().toISOString().slice(0, 10)}.csv` });
     document.body.append(a); a.click(); a.remove();
-    $('saveText').textContent = `Downloaded ${checks.size} check${checks.size === 1 ? '' : 's'}. Drag the file into the Team folder (it's in your Downloads). They also stay in this browser, so you can keep going next time.`;
+    notice = `Downloaded a copy of ${checks.size} check${checks.size === 1 ? '' : 's'} (your checks also go to the lab as you save them).`; renderSync();
   };
   function parseCsv(t) {  // handles quoted fields with commas, quotes and line breaks
     const rows = []; let row = [], f = '', inq = false;
@@ -370,10 +413,12 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     let n = 0;
     rows.forEach((r) => { const o = Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])); if (byKey.has(o.item) && VERDICT[o.verdict]) { const old = checks.get(o.item); if (!old || (o.at || '') > (old.at || '')) { checks.set(o.item, o); n++; } } });
     persist(); e.target.value = '';
-    $('saveText').textContent = `Loaded ${n} check${n === 1 ? '' : 's'} from ${file.name}.`;
-    render();
+    rows.forEach((r) => { const k = r[head.indexOf('item')]; if (checks.has(k)) unsent.add(k); }); keepUnsent();
+    notice = `Loaded ${n} check${n === 1 ? '' : 's'} from ${file.name}.`;
+    await flush(); render(); renderSync();
   };
-  render();
+  render(); renderSync();
+  if (unsent.size) { await flush(); afterSend(); }
 })();
 </script>
 </body>
