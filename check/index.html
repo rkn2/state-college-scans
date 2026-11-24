@@ -6,6 +6,7 @@
 <title>Sanborn Sheet Check</title>
 <meta name="robots" content="noindex">
 <meta name="description" content="Checking the Sanborn fire insurance sheet numbers for State College historic buildings.">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css" rel="stylesheet">
 <link rel="icon" type="image/png" href="../assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,6 +92,17 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
 .how { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
 .how ul { margin: 8px 0 0; padding-left: 1.2rem; display: grid; gap: 4px; }
 .mono { font-family: var(--mono); }
+.who { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.who label { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+.people { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .86rem; color: var(--muted); }
+.people span { display: inline-flex; align-items: center; gap: 6px; }
+.people b { color: var(--ink); font-weight: 500; }
+.dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex: none; background: var(--line); vertical-align: middle; }
+.list .addr { display: flex; align-items: center; gap: 7px; }
+.pill.done { background: var(--ok-bg); color: var(--ok); }
+.whomap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.whomap summary { font-weight: 500; color: var(--ink); }
+#whoMap { height: 380px; border-radius: 8px; margin-top: 10px; border: 1px solid var(--line); }
 .empty { padding: 24px; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .bar i { transition: width .3s; } }
 </style>
@@ -109,6 +121,11 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     <p class="sub">The index matches each historic building to the Sanborn fire insurance sheets that draw it (1906, 1911, 1922, 1929). These are the matches it was least sure of. Open each one, find the building on the sheet and say whether the sheet number is right.</p>
   </header>
 
+  <div class="who">
+    <label for="me">I'm <select id="me"><option value="">Pick your name</option></select></label>
+    <div class="people" id="people"></div>
+  </div>
+
   <div class="saveinfo">
     <p id="saveText">Your checks are kept in this browser on this computer. At the end of each session, download them and drag the file into the sanborn-checks folder on the H3D-StateCollege Team.</p>
     <button type="button" class="btn" id="dl">Download my checks</button>
@@ -117,6 +134,12 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   </div>
 
   <div class="progress" id="progress" role="group" aria-label="Progress by area"></div>
+
+  <details class="whomap" id="whomapBox">
+    <summary>Who is checking where (map)</summary>
+    <div id="whoMap" role="img" aria-label="Map of the buildings to check, colored by who has them"></div>
+    <p class="status" id="whoNote"></p>
+  </details>
 
   <details class="how">
     <summary><b>How to check one</b></summary>
@@ -131,6 +154,10 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   <div class="main">
     <div class="side">
       <div class="filters">
+        <select id="fWho" aria-label="Whose buildings">
+          <option value="mine">My buildings</option>
+          <option value="all">Everyone's</option>
+        </select>
         <select id="fStatus" aria-label="Which items">
           <option value="todo">To check</option>
           <option value="done">Checked</option>
@@ -158,15 +185,33 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   try { items = (await (await fetch('queue.json')).json()).items; }
   catch (e) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'The list of buildings did not load. Reload the page.' })); return; }
   const byKey = new Map(items.map((d) => [d.k, d]));
+  // who has what: assignments.json is rewritten every Monday and Thursday from the checks files in the Team folder
+  let A = { people: [], assign: {}, done: {}, next: '' };
+  try { const r = await fetch('assignments.json', { cache: 'no-cache' }); if (r.ok) A = await r.json(); } catch (e) { /* page still works without assignments */ }
+  const COLOR = Object.fromEntries((A.people || []).map((p) => [p.name, p.color]));
+  const ME_KEY = 'sanborn-checker';
+  let me = ''; try { me = localStorage.getItem(ME_KEY) || ''; } catch (e) { /* no storage */ }
+  if (!COLOR[me]) me = '';
+  const owner = (k) => A.assign?.[k] || A.done?.[k] || '';
+  const niceDate = (s) => s ? new Date(s + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'soon';
+  const dot = (name) => el('span', { className: 'dot', title: name || 'Not handed out yet', style: name && COLOR[name] ? `background:${COLOR[name]}` : '' });
   const checks = new Map();  // k -> stored check
   let area = AREAS[0], cur = null;
   const canWrite = true;
 
-  const statusOf = (d) => checks.get(d.k)?.verdict || null;
+  const statusOf = (d) => checks.get(d.k)?.verdict || (A.done?.[d.k] ? 'done' : null);
+  const mineOnly = () => $('fWho').value === 'mine' && me;
+  const pool = () => (mineOnly() ? items.filter((d) => A.assign?.[d.k] === me || A.done?.[d.k] === me || checks.has(d.k)) : items);
+  function renderPeople() {
+    $('people').replaceChildren(...(A.people || []).map((p) => {
+      const left = Object.entries(A.assign || {}).filter(([k, n]) => n === p.name && !checks.has(k)).length;
+      return el('span', {}, dot(p.name), el('b', { textContent: p.name }), `${left} to go`);
+    }), A.updated ? el('span', { textContent: `Handed out ${niceDate(A.updated)}, next batch ${niceDate(A.next)}` }) : null);
+  }
 
   function renderProgress() {
     $('progress').replaceChildren(...AREAS.map((a) => {
-      const all = items.filter((d) => d.area === a), done = all.filter((d) => statusOf(d)).length;
+      const all = pool().filter((d) => d.area === a), done = all.filter((d) => statusOf(d)).length;
       const b = el('button', { className: 'chip', type: 'button' },
         el('span', { className: 'eyebrow', textContent: a }),
         el('b', { textContent: `${done} of ${all.length}` }),
@@ -179,17 +224,24 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
 
   function visible() {
     const f = $('fStatus').value, q = $('fSearch').value.trim().toLowerCase();
-    return items.filter((d) => d.area === area && (f === 'all' || (f === 'todo') === !statusOf(d)) && (!q || d.address.toLowerCase().includes(q)));
+    return pool().filter((d) => d.area === area && (f === 'all' || (f === 'todo') === !statusOf(d)) && (!q || d.address.toLowerCase().includes(q)));
   }
 
   function renderList() {
     const vis = visible();
-    if (!vis.length) { $('list').replaceChildren(el('li', { className: 'empty', textContent: $('fStatus').value === 'todo' ? 'Nothing left to check in this area.' : 'No matches.' })); return; }
+    if (!vis.length) {
+      const anyLeft = pool().some((d) => !statusOf(d));
+      const msg = $('fStatus').value !== 'todo' ? 'No matches.'
+        : !me && $('fWho').value === 'mine' ? 'Pick your name at the top to see your buildings.'
+        : mineOnly() && !anyLeft ? `You've finished your batch! More buildings come ${niceDate(A.next)}.`
+        : 'Nothing left in this area. Try another area above.';
+      $('list').replaceChildren(el('li', { className: 'empty', textContent: msg })); return;
+    }
     $('list').replaceChildren(...vis.map((d) => {
       const s = statusOf(d);
       const b = el('button', { type: 'button' },
-        el('span', { className: 'addr', textContent: d.address }),
-        el('span', { className: 'pill' + (s ? ' ' + s : ''), textContent: s ? VERDICT[s] : d.year }),
+        el('span', { className: 'addr' }, dot(owner(d.k)), el('span', { textContent: d.address })),
+        el('span', { className: 'pill' + (s ? ' ' + s : ''), textContent: s === 'done' ? `Checked by ${A.done[d.k] || 'someone'}` : s ? VERDICT[s] : d.year }),
         el('span', { className: 'meta', textContent: d.street ? 'whole street' : `${d.year} · index says ${d.sheet ? 'sheet ' + d.sheet : 'no sheet'}${d.sample ? ' · random check' : ''}` }));
       b.setAttribute('aria-current', String(cur === d.k));
       b.onclick = () => { cur = d.k; render(); };
@@ -226,7 +278,7 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     }
     sheetIn.oninput = sync; noteIn.oninput = sync;
     saveBtn.onclick = () => {
-      checks.set(d.k, { verdict, sheet: verdict === 'wrong' ? sheetIn.value.trim() : '', note: noteIn.value.trim(), item: d.k, id: d.id, year: d.year, index_sheet: d.sheet, at: new Date().toISOString() });
+      checks.set(d.k, { verdict, sheet: verdict === 'wrong' ? sheetIn.value.trim() : '', note: noteIn.value.trim(), item: d.k, id: d.id, year: d.year, index_sheet: d.sheet, at: new Date().toISOString(), checker: me });
       if (!persist()) { status.textContent = 'Saved for now, but this browser will not keep it after you close the page. Download your checks before you leave.'; }
       if (!c) { const vis = visible().filter((x) => x.k !== d.k && !statusOf(x)); cur = vis[0]?.k || null; }
       render();
@@ -235,7 +287,8 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     const who = c ? el('div', { className: 'status', textContent: `Checked ${new Date(c.at).toLocaleDateString()}: ${VERDICT[c.verdict]}${c.sheet ? ', sheet ' + c.sheet : ''}. Change it below if needed.` }) : null;
 
     $('card').replaceChildren(...[
-      el('div', {}, el('div', { className: 'eyebrow', textContent: `${d.area} · ${d.year}${d.sample ? ' · random check' : ''}` }), el('h2', { textContent: d.address })),
+      el('div', {}, el('div', { className: 'eyebrow', textContent: `${d.area} · ${d.year}${d.sample ? ' · random check' : ''}` }), el('h2', { textContent: d.address }),
+        el('div', { className: 'status' }, dot(owner(d.k)), ' ', A.done?.[d.k] && !c ? `Already checked by ${A.done[d.k]}` : A.assign?.[d.k] ? `${A.assign[d.k] === me ? 'Yours' : A.assign[d.k] + "'s"}` : 'Not handed out yet')),
       d.street ? null : el('div', { className: 'claim' },
         el('div', {}, el('div', { className: 'eyebrow', textContent: 'Index says' }), el('div', { className: 'big', textContent: d.sheet ? `sheet ${d.sheet}` : 'none' })),
         el('div', {}, el('div', { className: 'eyebrow', textContent: 'Found by' }), el('div', { textContent: d.method || 'nothing matched' }))),
@@ -250,23 +303,52 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   }
 
   function render() {
-    renderProgress();
+    renderPeople(); renderProgress();
+    if (!pool().some((d) => d.area === area && !statusOf(d))) { const a2 = AREAS.find((a) => pool().some((d) => d.area === a && !statusOf(d))); if (a2) area = a2; }
     if (!cur || byKey.get(cur)?.area !== area) cur = visible()[0]?.k || null;
     renderList(); renderCard();
   }
   $('fStatus').onchange = () => { cur = null; render(); };
+  $('fWho').onchange = () => { cur = null; render(); };
+  (A.people || []).forEach((p) => $('me').append(new Option(p.name, p.name)));
+  $('me').value = me;
+  $('me').onchange = () => { me = $('me').value; try { localStorage.setItem(ME_KEY, me); } catch (e) { /* no storage */ } cur = null; render(); };
+  if (!A.people?.length) { $('me').closest('.who').hidden = true; $('fWho').value = 'all'; $('fWho').hidden = true; }
+
+  // map of who has which buildings, loaded the first time it is opened
+  $('whomapBox').addEventListener('toggle', async function once() {
+    if (!$('whomapBox').open) return;
+    $('whomapBox').removeEventListener('toggle', once);
+    try {
+      await new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js'; sc.onload = ok; sc.onerror = bad; document.head.append(sc); });
+      const rows = (await (await fetch('../data/buildings.json')).json()).rows, at = new Map(rows.map((r) => [r.id, [r.lon, r.lat]]));
+      const byId = new Map();
+      items.forEach((d) => { if (!at.has(d.id)) return; const o = byId.get(d.id) || { n: 0, open: 0, who: '' }; o.n++; if (!statusOf(d)) { o.open++; o.who = o.who || A.assign?.[d.k] || ''; } byId.set(d.id, o); });
+      const feats = [...byId].map(([id, o]) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: at.get(id) }, properties: { id, c: o.open ? (COLOR[o.who] || '#9aa6b5') : 'rgba(0,0,0,0)', done: o.open ? 0 : 1 } }));
+      const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      const m = new maplibregl.Map({ container: 'whoMap', attributionControl: { compact: true }, style: { version: 8, sources: {
+        base: { type: 'raster', tiles: [`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${dark ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base'}/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 16, attribution: 'Basemap Esri, HERE, Garmin, © OpenStreetMap contributors' },
+        pts: { type: 'geojson', data: { type: 'FeatureCollection', features: feats } } },
+        layers: [{ id: 'base', type: 'raster', source: 'base' }, { id: 'pts', type: 'circle', source: 'pts', paint: { 'circle-color': ['get', 'c'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 3, 18, 8], 'circle-stroke-width': ['case', ['==', ['get', 'done'], 1], 1.5, 1], 'circle-stroke-color': ['case', ['==', ['get', 'done'], 1], '#8b9298', dark ? '#0a1628' : '#ffffff'] } }] },
+        bounds: feats.reduce((b, f) => b.extend(f.geometry.coordinates), new maplibregl.LngLatBounds(feats[0].geometry.coordinates, feats[0].geometry.coordinates)), fitBoundsOptions: { padding: 24 } });
+      m.addControl(new maplibregl.NavigationControl({ showCompass: false }));
+      m.on('click', 'pts', (e) => { const id = e.features[0].properties.id; const d = items.find((x) => x.id === id && !statusOf(x)) || items.find((x) => x.id === id); if (!d) return; if (mineOnly() && A.assign?.[d.k] !== me) $('fWho').value = 'all'; area = d.area; cur = d.k; render(); $('card').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+      m.on('mouseenter', 'pts', () => { m.getCanvas().style.cursor = 'pointer'; }); m.on('mouseleave', 'pts', () => { m.getCanvas().style.cursor = ''; });
+      $('whoNote').textContent = 'Each dot is a building, colored by who has it. Gray dots are not handed out yet and hollow dots are done. Click a dot to open it.';
+    } catch (e) { $('whoNote').textContent = 'The map did not load. The list below still works.'; }
+  });
   $('fSearch').oninput = () => { cur = null; render(); };
 
   // checks live in this browser; the CSV download is what reaches Becca
   const KEY = 'sanborn-checks-v1';
-  const COLS = ['item', 'id', 'year', 'index_sheet', 'verdict', 'sheet', 'note', 'at'];
+  const COLS = ['item', 'id', 'year', 'index_sheet', 'verdict', 'sheet', 'note', 'at', 'checker'];
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(checks))); return true; } catch (e) { return false; } }
   try { Object.entries(JSON.parse(localStorage.getItem(KEY) || '{}')).forEach(([k, v]) => { if (byKey.has(k)) checks.set(k, v); }); } catch (e) { /* no storage: the page still works for this visit */ }
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   $('dl').onclick = () => {
     if (!checks.size) { $('saveText').textContent = 'Nothing checked yet, so there is nothing to download.'; return; }
-    const csv = [COLS.join(','), ...[...checks.values()].map((c) => COLS.map((k) => q(c[k])).join(','))].join('\n');
-    const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `sanborn-checks-${new Date().toISOString().slice(0, 10)}.csv` });
+    const csv = [COLS.join(','), ...[...checks.values()].map((c) => COLS.map((k) => q(k === 'checker' ? (c.checker || me) : c[k])).join(','))].join('\n');
+    const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `sanborn-checks-${me ? me + '-' : ''}${new Date().toISOString().slice(0, 10)}.csv` });
     document.body.append(a); a.click(); a.remove();
     $('saveText').textContent = `Downloaded ${checks.size} check${checks.size === 1 ? '' : 's'}. Drag the file into the Team folder (it's in your Downloads). They also stay in this browser, so you can keep going next time.`;
   };
