@@ -104,11 +104,15 @@
   .sheets li { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }
   .sheets .yr { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink); min-width: 2.6em; }
   .sheets .none { color: var(--text-secondary); }
-  .ctlrow { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: end; }
+  .ctlrow { display: flex; flex-wrap: wrap; gap: 1.1rem 1rem; align-items: end; margin-bottom: 1rem; }
   .ctl { display: grid; gap: 2px; }
   .ctl > span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
   .ctl[hidden], .legend[hidden] { display: none; }
   .ctl select { min-width: 9rem; }
+  #findform { position: relative; }
+  #find { width: 15rem; max-width: 100%; font-size: 0.9rem; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: inherit; box-sizing: border-box; }
+  #findform label span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--steel); }
+  .ctl > .findmsg { position: absolute; top: 100%; left: 0; white-space: nowrap; font-size: 0.75rem; color: var(--muted); text-transform: none; letter-spacing: 0; }
   .ctl input[type=range] { width: 120px; accent-color: var(--navy); height: 30px; }
   .ctl.push { margin-left: auto; }
   #tilt { position: absolute; top: 10px; right: 10px; z-index: 3; box-shadow: 0 1px 4px rgb(10 34 64 / .2); }
@@ -233,6 +237,9 @@
             </select></label>
           <label class="ctl" id="yrwrap" hidden><span>Year</span><select id="yr"></select></label>
           <label class="ctl" id="opwrap" hidden><span>Opacity</span><input type="range" id="op" min="0.2" max="1" step="0.05" value="0.9"></label>
+          <form class="ctl" id="findform" role="search"><label for="find"><span>Find an address</span></label>
+            <input id="find" list="addrlist" placeholder="e.g. 443 W Beaver Ave" autocomplete="off"><datalist id="addrlist"></datalist>
+            <span class="findmsg" id="findmsg" role="status" aria-live="polite"></span></form>
           <label class="ctl"><span>Zoom to</span>
             <select id="zoomto">
               <option value="">All areas</option>
@@ -250,7 +257,7 @@
           <li><i class="sw" style="border:1px dashed var(--muted)"></i>Demolished, not counted</li>
           <li><i class="sw" style="background:#c8102e"></i>Selected</li>
         </ul>
-        <p class="hint">West End buildings are 3D models fitted to public lidar from March 2019. Right-drag or two-finger drag to tilt and turn. Downtown buildings are dots. Tap a building for details. Sanborn maps from the Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information. Aerial photos &copy; Nearmap.</p>
+        <p class="hint">West End buildings are 3D models fitted to public lidar from March 2019. Right-drag or two-finger drag to tilt and turn. Downtown buildings are dots. Tap a building or find an address for details. Sanborn maps from the Penn State University Libraries, Donald W. Hamer Center for Maps and Geospatial Information. Aerial photos &copy; Nearmap.</p>
       </div>
       <aside class="detail" id="detail" aria-live="polite"><p class="hint">Tap a building on the map to see what has been collected for it.</p></aside>
     </div>
@@ -518,6 +525,29 @@
     tilt.setAttribute('aria-pressed', String(on));
     map.easeTo({ pitch: on ? 50 : 0, bearing: on ? -20 : 0, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 600 });
   });
+  // address search: today's addresses, forgiving about W/West, St/Street and punctuation; ranges like 433-435 match either number
+  const ABBR = { west: 'w', east: 'e', north: 'n', south: 's', street: 'st', avenue: 'ave', av: 'ave', road: 'rd', drive: 'dr', lane: 'ln', place: 'pl', boulevard: 'blvd', alley: 'aly', court: 'ct', terrace: 'ter' };
+  const norm = (a) => String(a || '').toLowerCase().replace(/[.,#]/g, ' ').split(/\s+/).filter(Boolean).map((w) => ABBR[w] || w).join(' ');
+  const findable = rows.filter((r) => r.address).sort((a, b) => (a.demolished - b.demolished));
+  const addrIdx = findable.map((r) => ({ r, n: norm(r.address), nn: norm(r.name ? `${r.name} ${r.address}` : r.address) }));
+  const dl = document.getElementById('addrlist');
+  [...new Set(findable.map((r) => r.address))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach((a) => dl.append(new Option(a)));
+  function findAddress(q) {
+    const n = norm(q); if (!n) return null;
+    const m = n.match(/^(\d+)\s+(.*)$/);
+    return (addrIdx.find((x) => x.n === n) || addrIdx.find((x) => x.n.startsWith(n)) || addrIdx.find((x) => x.nn.includes(n))
+      || (m && addrIdx.find((x) => { const k = x.n.match(/^(\d+)\s*-\s*(\d+)\s+(.*)$/); return k && k[3].startsWith(m[2]) && +m[1] >= +k[1] && +m[1] <= +k[2]; })) || {}).r || null;
+  }
+  const findInput = document.getElementById('find'), findMsg = document.getElementById('findmsg');
+  function goFind() {
+    const r = findAddress(findInput.value);
+    if (!r) { findMsg.textContent = findInput.value.trim() ? 'Not in the historic areas on this map' : ''; return; }
+    findMsg.textContent = '';
+    select(r.id);
+    map.easeTo({ center: [r.lon, r.lat], zoom: 18.5, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 });
+  }
+  document.getElementById('findform').addEventListener('submit', (e) => { e.preventDefault(); goFind(); });
+  findInput.addEventListener('change', goFind);
   document.getElementById('zoomto').addEventListener('change', (e) => {
     const b = new maplibregl.LngLatBounds(); const add = (c) => (typeof c[0] === 'number' ? b.extend(c) : c.forEach(add));
     areaFC.features.filter((f) => !e.target.value || f.properties.area === e.target.value).forEach((f) => add(f.geometry.coordinates));
