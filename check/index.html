@@ -110,8 +110,9 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   </header>
 
   <div class="saveinfo">
-    <p id="saveText">Your checks are kept in this browser on this computer. At the end of each session, download them and send the file to Becca.</p>
+    <p id="saveText">Your checks are kept in this browser on this computer. At the end of each session, download them and drag the file into the sanborn-checks folder on the H3D-StateCollege Team.</p>
     <button type="button" class="btn" id="dl">Download my checks</button>
+    <a class="btn" id="folder" href="https://pennstateoffice365.sharepoint.com/sites/H3D-StateCollege/Shared%20Documents/General/sanborn-checks" target="_blank" rel="noopener">Open the Team folder</a>
     <label class="btn filebtn">Load a checks file<input type="file" id="load" accept=".csv,text/csv"></label>
   </div>
 
@@ -267,7 +268,7 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
     const csv = [COLS.join(','), ...[...checks.values()].map((c) => COLS.map((k) => q(c[k])).join(','))].join('\n');
     const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `sanborn-checks-${new Date().toISOString().slice(0, 10)}.csv` });
     document.body.append(a); a.click(); a.remove();
-    $('saveText').textContent = `Downloaded ${checks.size} check${checks.size === 1 ? '' : 's'}. Send the file to Becca. They also stay in this browser, so you can keep going next time.`;
+    $('saveText').textContent = `Downloaded ${checks.size} check${checks.size === 1 ? '' : 's'}. Drag the file into the Team folder (it's in your Downloads). They also stay in this browser, so you can keep going next time.`;
   };
   function parseCsv(t) {  // handles quoted fields with commas, quotes and line breaks
     const rows = []; let row = [], f = '', inq = false;
