@@ -359,9 +359,8 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   async function send(k) {
     const c = checks.get(k); if (!c) return 'gone';
     unsent.add(k); keepUnsent();
-    if (!code) return 'code';
     try {
-      const r = await fetch(API + '/check', { method: 'POST', headers: { 'X-Lab-Code': code, 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
+      const r = await fetch(API + '/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) { code = ''; try { localStorage.removeItem(CODE_KEY); } catch (e) { /* */ } return 'code'; }
       if (r.status === 409) { checks.delete(k); persist(); unsent.delete(k); keepUnsent(); if (j.assign) A = j; notice = `${byKey.get(k)?.address || 'That building'} is ${j.owner}'s, so your check on it wasn't kept.`; return 'owner'; }
@@ -374,10 +373,9 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   }
   async function flush() { for (const k of [...unsent]) { const r = await send(k); if (r === 'code' || r === 'offline') break; } }
   function renderSync() {
-    $('codeWrap').hidden = !!code;
+    $('codeWrap').hidden = true;
     const n = unsent.size;
-    $('saveText').textContent = (notice ? notice + ' ' : '') + (!code ? 'Type the lab code at the top (Becca sent it) so your checks can save to the lab.'
-      : n ? `${n} check${n === 1 ? '' : 's'} waiting to send. They're safe in this browser and will send when the lab can be reached.`
+    $('saveText').textContent = (notice ? notice + ' ' : '') + (n ? `${n} check${n === 1 ? '' : 's'} waiting to send. They're safe in this browser and will send when the lab can be reached.`
       : live ? 'Connected to the lab. Each check saves there as soon as you click Save.' : "Can't reach the lab right now. Your checks are kept in this browser and will send when it's back.");
   }
   // after a send, refresh everything except the card, so whatever the student is typing on the next building stays put
