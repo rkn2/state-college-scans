@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sanborn Sheet Check</title>
+<title>Sanborn Building Check</title>
 <meta name="robots" content="noindex">
 <meta name="description" content="Checking the Sanborn fire insurance sheet numbers for State College historic buildings.">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css" rel="stylesheet">
@@ -92,6 +92,16 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
 .how { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
 .how ul { margin: 8px 0 0; padding-left: 1.2rem; display: grid; gap: 4px; }
 .mono { font-family: var(--mono); }
+.sect { display: grid; gap: 12px; }
+.sect h3 { font: 600 1.05rem var(--display); margin: 4px 0 0; }
+.part { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.parthead { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; color: var(--muted); font-size: .9rem; }
+.parthead b { color: var(--ink); font: 600 1rem var(--mono); }
+.part label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+.attrgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.attrgrid .wide { grid-column: 1 / -1; }
+.attrgrid select, .attrgrid input, .part input { width: 100%; }
+
 .who { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
 .who label { display: flex; gap: 8px; align-items: center; font-weight: 500; }
 .people { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .86rem; color: var(--muted); }
@@ -117,37 +127,35 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
 <div class="wrap">
   <header>
     <div class="eyebrow">Heritage 3D Lab · State College historic districts</div>
-    <h1>Sanborn Sheet Check</h1>
-    <p class="sub">The index matches each historic building to the Sanborn fire insurance sheets that draw it (1906, 1911, 1922, 1929). These are the matches it was least sure of. Open each one, find the building on the sheet and say whether the sheet number is right.</p>
+    <h1>Sanborn Building Check</h1>
+    <p class="sub">Each historic building is matched to the Sanborn fire insurance sheets that draw it (1906, 1911, 1922, 1929). For each of your buildings, confirm any sheet number the index wasn't sure of, then record what each sheet shows about the building. You can do a building in pieces. Everything saves as you go.</p>
   </header>
 
   <div class="who">
     <label for="me">I'm <select id="me"><option value="">Pick your name</option></select></label>
-    <label for="code" id="codeWrap" hidden>Lab code <input id="code" type="password" autocomplete="off" size="12"></label>
     <div class="people" id="people"></div>
   </div>
 
   <div class="saveinfo">
     <p id="saveText">Connecting to the lab…</p>
     <button type="button" class="btn" id="dl">Download a copy</button>
-    <label class="btn filebtn">Load a checks file<input type="file" id="load" accept=".csv,text/csv"></label>
   </div>
 
   <div class="progress" id="progress" role="group" aria-label="Progress by area"></div>
 
   <details class="whomap" id="whomapBox">
     <summary>Who is checking where (map)</summary>
-    <div id="whoMap" role="img" aria-label="Map of the buildings to check, colored by who has them"></div>
+    <div id="whoMap" role="img" aria-label="Map of the buildings, colored by who has them"></div>
     <p class="status" id="whoNote"></p>
   </details>
 
   <details class="how">
-    <summary><b>How to check one</b></summary>
+    <summary><b>How to do one</b></summary>
     <ul>
-      <li><b>Open on the map.</b> The public map opens on the building with that year's Sanborn map underneath. The building is outlined in red. Read the house number the Sanborn map prints on it, which is often different from today's.</li>
-      <li><b>Open the sheet.</b> The library's viewer has a zoom. Find the same building on that sheet by its streets and printed number. Sheet 1 of each year has the key map and street index if you need to find the right sheet.</li>
-      <li><b>Right sheet</b> if the sheet draws this lot. <b>Wrong sheet</b> if it's on another sheet, and type the right number. <b>Not on any sheet</b> if that year's maps stop short of the lot. <b>Not sure</b> if you can't tell, and say why in the note.</li>
-      <li>A lot cut by a sheet edge is on both sheets. Give both numbers, like <span class="mono">6 &amp; 7</span>.</li>
+      <li><b>Open on the map.</b> The public map opens on the building with that year's Sanborn map underneath, outlined in red. Read the house number the Sanborn map prints on it, which is often different from today's.</li>
+      <li><b>Open the sheet.</b> The library's viewer has a zoom. Find the same building by its streets and printed number. Sheet 1 of each year has the key map and street index.</li>
+      <li><b>Confirm the sheet</b> (only for some buildings). <b>Right sheet</b> if the sheet draws this lot. <b>Wrong sheet</b> if it's on another sheet, and type the right number. <b>Not on any sheet</b> if that year's maps stop short of the lot. <b>Not sure</b> if you can't tell, and say why. A lot cut by a sheet edge is on both sheets, like <span class="mono">6 &amp; 7</span>.</li>
+      <li><b>What the sheet shows.</b> For each year, the color gives the material (yellow frame, pink brick, blue stone, gray iron or metal, brown fireproof). The number in a corner is the stories (½ for a half story). The letter is the use (D dwelling, F flats, S store, A auto or garage). Copy the printed house number. Compare with the year before to say whether it changed. Use <b>Can't tell</b> or <b>Other</b> with a note when the sheet isn't clear.</li>
     </ul>
   </details>
 
@@ -158,16 +166,16 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
           <option value="mine">My buildings</option>
           <option value="all">Everyone's</option>
         </select>
-        <select id="fStatus" aria-label="Which items">
-          <option value="todo">To check</option>
-          <option value="done">Checked</option>
+        <select id="fStatus" aria-label="Which buildings">
+          <option value="todo">To do</option>
+          <option value="done">Done</option>
           <option value="all">All</option>
         </select>
         <input type="text" id="fSearch" placeholder="Search address" aria-label="Search address">
       </div>
       <ul class="list" id="list"></ul>
     </div>
-    <section class="card" id="card" aria-live="polite"><div class="empty">Loading the queue…</div></section>
+    <section class="card" id="card" aria-live="polite"><div class="empty">Loading the buildings…</div></section>
   </div>
 </div>
 
@@ -177,19 +185,45 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   const DRAWER = 'https://digital.libraries.psu.edu/digital/collection/maps1/id/';
   const FIRST_ID = { 1906: 936, 1911: 989, 1922: 999, 1929: 26132 };  // Map Drawer id of sheet 1; sheet n is FIRST_ID + n - 1
   const AREAS = ['West End', 'Holmes-Foster/Highlands', 'College Heights', 'Downtown'];
+  const YEARS = ['1906', '1911', '1922', '1929'];
   const VERDICT = { right: 'Right sheet', wrong: 'Wrong sheet', absent: 'Not on any sheet', unsure: 'Not sure' };
+  const CANT = "Can't tell";
+  const OPTS = {  // from the standard Sanborn key; Other and Can't tell always available
+    material: ['Frame (yellow)', 'Brick (pink)', 'Stone (blue)', 'Brick veneer on frame', 'Iron or metal-clad (gray)', 'Fireproof (brown)', 'Concrete or cement block', 'Other', CANT],
+    stories: ['1', '1½', '2', '2½', '3', '3½', '4 or more', CANT],
+    use: ['Dwelling (D)', 'Flats or apartments (F)', 'Store (S)', 'Auto or garage (A)', 'Shed or outbuilding', 'Church, school or public', 'Other', CANT],
+    change: ['First map it is on', 'Same as the map before', 'Added on', 'Made smaller', 'Replaced by a new building', CANT],
+  };
+  const LABEL = { material: 'Material', stories: 'Stories', use: 'Use', change: 'Since the map before', number: 'Printed number', note: 'Note' };
+  const NEED = ['material', 'stories', 'use'];
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids.filter((k) => k != null)); return e; };
 
-  let items = [];
-  try { items = (await (await fetch('queue.json')).json()).items; }
-  catch (e) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'The list of buildings did not load. Reload the page.' })); return; }
-  const byKey = new Map(items.map((d) => [d.k, d]));
-  // who has what comes live from the lab server, which also takes each save and hands out the next block when someone
-  // runs low; assignments.json is the daily snapshot the page falls back to if the server can't be reached
+  // ---- the buildings: one unit per building (sheet checks + what each sheet shows), streets as their own units ----
+  let items, S, rows;
+  try {
+    [items, S, rows] = await Promise.all(['queue.json', '../data/sanborn.json', '../data/buildings.json'].map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.json(); })));
+    items = items.items; rows = rows.rows;
+  } catch (e) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'The list of buildings did not load. Reload the page.' })); return; }
+  const rowById = new Map(rows.map((r) => [r.id, r]));
+  const units = [], byU = new Map();
+  items.forEach((d) => {
+    if (d.street) { const u = { k: d.k, id: d.id, area: d.area, address: d.address, checks: { [d.year]: d }, attrs: [], street: true }; units.push(u); byU.set(u.k, u); return; }
+    let u = byU.get(d.id);
+    if (!u) { u = { k: d.id, id: d.id, area: d.area, address: d.address, checks: {}, attrs: [] }; units.push(u); byU.set(u.k, u); }
+    u.checks[d.year] = d;
+  });
+  Object.entries(S).forEach(([id, ys]) => {
+    if (!Object.keys(ys).length || !rowById.has(id) || byU.has(id)) return;
+    const r = rowById.get(id); const u = { k: id, id, area: r.area, address: r.address, checks: {}, attrs: [] }; units.push(u); byU.set(id, u);
+  });
+  units.forEach((u) => { if (!u.street) u.attrs = YEARS.filter((y) => S[u.id]?.[y]); });
+  units.sort((a, b) => (AREAS.indexOf(a.area) - AREAS.indexOf(b.area)) || a.address.localeCompare(b.address, undefined, { numeric: true }));
+
+  // ---- who has what: live from the lab server; assignments.json is the daily snapshot fallback ----
   const API = new URLSearchParams(location.search).get('api') || 'https://becca-mcp.tail3a44c1.ts.net/sanborn';
-  let A = { people: [], assign: {}, done: {}, next: '' }, live = false;
-  try { const r = await fetch('assignments.json', { cache: 'no-cache' }); if (r.ok) A = await r.json(); } catch (e) { /* page still works without assignments */ }
+  let A = { people: [], assign: {}, done: {}, started: {} }, live = false;
+  try { const r = await fetch('assignments.json', { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); if (j.version === 2) A = j; else A.people = j.people || []; } } catch (e) { /* fine */ }
   async function pull() {
     try { const r = await fetch(API + '/state', { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); A = await r.json(); live = true; }
     catch (e) { live = false; }
@@ -200,143 +234,198 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
   let me = ''; try { me = localStorage.getItem(ME_KEY) || ''; } catch (e) { /* no storage */ }
   if (!COLOR[me]) me = '';
   const owner = (k) => A.assign?.[k] || A.done?.[k] || '';
-  const niceDate = (s) => s ? new Date(s + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'soon';
   const dot = (name) => el('span', { className: 'dot', title: name || 'Not handed out yet', style: name && COLOR[name] ? `background:${COLOR[name]}` : '' });
-  const checks = new Map();  // k -> stored check
-  let area = AREAS[0], cur = null;
-  const canWrite = true;
 
-  const statusOf = (d) => checks.get(d.k)?.verdict || (A.done?.[d.k] ? 'done' : null);
+  // ---- what this browser has saved; the server copy wins part by part when newer ----
+  const REC_KEY = 'sanborn-records-v2', UNSENT_KEY = 'sanborn-unsent-v2';
+  const recs = new Map(); let unsent = new Set(), notice = '';
+  try { Object.entries(JSON.parse(localStorage.getItem(REC_KEY) || '{}')).forEach(([k, v]) => { if (byU.has(k)) recs.set(k, v); }); unsent = new Set(JSON.parse(localStorage.getItem(UNSENT_KEY) || '[]')); } catch (e) { /* no storage */ }
+  const persist = () => { try { localStorage.setItem(REC_KEY, JSON.stringify(Object.fromEntries(recs))); localStorage.setItem(UNSENT_KEY, JSON.stringify([...unsent])); } catch (e) { /* no storage */ } };
+  const recOf = (k) => { if (!recs.has(k)) recs.set(k, { checks: {}, attrs: {} }); return recs.get(k); };
+  function mergeRec(k, server) {
+    if (!server) return;
+    const r = recOf(k);
+    ['checks', 'attrs'].forEach((part) => Object.entries(server[part] || {}).forEach(([y, v]) => { if (!r[part][y] || (v.at || '') > (r[part][y].at || '')) r[part][y] = v; }));
+  }
+  function attrYears(u, r) {
+    const ys = new Set(u.attrs);
+    Object.entries(r?.checks || {}).forEach(([y, c]) => { if (c.verdict === 'wrong' && c.sheet) ys.add(y); if (c.verdict === 'absent') ys.delete(y); });
+    return YEARS.filter((y) => ys.has(y));
+  }
+  function parts(u) {  // [done, total]
+    const r = recs.get(u.k) || { checks: {}, attrs: {} };
+    const cy = Object.keys(u.checks), ay = attrYears(u, r);
+    const done = cy.filter((y) => r.checks[y]?.verdict).length + ay.filter((y) => NEED.every((f) => r.attrs[y]?.[f])).length;
+    return [done, cy.length + ay.length];
+  }
+  const statusOf = (u) => (A.done?.[u.k] ? 'done' : (recs.has(u.k) && parts(u)[0]) || A.started?.[u.k] ? 'started' : null);
   const mineOnly = () => $('fWho').value === 'mine' && me;
-  const pool = () => (mineOnly() ? items.filter((d) => A.assign?.[d.k] === me || A.done?.[d.k] === me || checks.has(d.k)) : items);
+  const pool = () => (mineOnly() ? units.filter((u) => A.assign?.[u.k] === me || A.done?.[u.k] === me) : units);
+  let area = AREAS[0], cur = null;
+
   function renderPeople() {
     $('people').replaceChildren(...(A.people || []).map((p) => {
-      const left = Object.entries(A.assign || {}).filter(([k, n]) => n === p.name && !checks.has(k)).length;
-      return el('span', {}, dot(p.name), el('b', { textContent: p.name }), `${left} to go`);
+      const left = Object.values(A.assign || {}).filter((n) => n === p.name).length;
+      const done = Object.values(A.done || {}).filter((n) => n === p.name).length;
+      return el('span', {}, dot(p.name), el('b', { textContent: p.name }), `${done} done, ${left} to go`);
     }), el('span', { textContent: live ? 'Live. New buildings come as soon as you run low.' : 'Not connected to the lab right now, showing the last snapshot.' }));
   }
-
   function renderProgress() {
     $('progress').replaceChildren(...AREAS.map((a) => {
-      const all = pool().filter((d) => d.area === a), done = all.filter((d) => statusOf(d)).length;
-      const b = el('button', { className: 'chip', type: 'button' },
-        el('span', { className: 'eyebrow', textContent: a }),
-        el('b', { textContent: `${done} of ${all.length}` }),
+      const all = pool().filter((u) => u.area === a), done = all.filter((u) => statusOf(u) === 'done').length;
+      const b = el('button', { className: 'chip', type: 'button' }, el('span', { className: 'eyebrow', textContent: a }), el('b', { textContent: `${done} of ${all.length}` }),
         el('span', { className: 'bar' }, el('i', { style: `width:${all.length ? (100 * done) / all.length : 0}%` })));
       b.setAttribute('aria-pressed', String(a === area));
       b.onclick = () => { area = a; cur = null; render(); };
       return b;
     }));
   }
-
   function visible() {
     const f = $('fStatus').value, q = $('fSearch').value.trim().toLowerCase();
-    return pool().filter((d) => d.area === area && (f === 'all' || (f === 'todo') === !statusOf(d)) && (!q || d.address.toLowerCase().includes(q)));
+    return pool().filter((u) => u.area === area && (f === 'all' || (f === 'done') === (statusOf(u) === 'done')) && (!q || u.address.toLowerCase().includes(q)));
   }
-
   function renderList() {
     const vis = visible();
     if (!vis.length) {
-      const anyLeft = pool().some((d) => !statusOf(d));
-      const msg = $('fStatus').value !== 'todo' ? 'No matches.'
-        : !me && $('fWho').value === 'mine' ? 'Pick your name at the top to see your buildings.'
-        : mineOnly() && !anyLeft ? `You've finished your batch! More buildings come ${niceDate(A.next)}.`
-        : 'Nothing left in this area. Try another area above.';
+      const anyLeft = pool().some((u) => statusOf(u) !== 'done');
+      const msg = $('fStatus').value === 'done' || $('fSearch').value ? 'No matches.' : !me ? 'Pick your name at the top to see your buildings.'
+        : mineOnly() && !anyLeft ? "You've finished all your buildings! More come as soon as the lab hands them out." : 'Nothing left in this area. Try another area above.';
       $('list').replaceChildren(el('li', { className: 'empty', textContent: msg })); return;
     }
-    $('list').replaceChildren(...vis.map((d) => {
-      const s = statusOf(d);
+    $('list').replaceChildren(...vis.map((u) => {
+      const s = statusOf(u), [d, t] = parts(u);
       const b = el('button', { type: 'button' },
-        el('span', { className: 'addr' }, dot(owner(d.k)), el('span', { textContent: d.address })),
-        el('span', { className: 'pill' + (s ? ' ' + s : ''), textContent: s === 'done' ? `Checked by ${A.done[d.k] || 'someone'}` : s ? VERDICT[s] : d.year }),
-        el('span', { className: 'meta', textContent: d.street ? 'whole street' : `${d.year} · index says ${d.sheet ? 'sheet ' + d.sheet : 'no sheet'}${d.sample ? ' · random check' : ''}` }));
-      b.setAttribute('aria-current', String(cur === d.k));
-      b.onclick = () => { cur = d.k; render(); };
+        el('span', { className: 'addr' }, dot(owner(u.k)), el('span', { textContent: u.address })),
+        el('span', { className: 'pill' + (s === 'done' ? ' done' : s ? ' unsure' : ''), textContent: s === 'done' ? (A.done[u.k] === me || !me ? 'Done' : `Done by ${A.done[u.k]}`) : s ? `${d} of ${t}` : `${t} to do` }),
+        el('span', { className: 'meta', textContent: u.street ? 'whole street' : [Object.keys(u.checks).length ? `check ${Object.keys(u.checks).join(', ')}` : '', u.attrs.length ? `on ${u.attrs.join(', ')}` : 'on no sheet yet'].filter(Boolean).join(' · ') }));
+      b.setAttribute('aria-current', String(cur === u.k));
+      b.onclick = () => { cur = u.k; render(); };
       return el('li', {}, b);
     }));
   }
 
   const sheetLink = (year, n, label) => el('a', { className: 'btn', href: DRAWER + (FIRST_ID[year] + Number(n) - 1), target: '_blank', rel: 'noopener', textContent: label });
+  function sheetLinks(u, y, r) {  // the sheet to read this year's attributes from, corrected if a student said so
+    const c = r.checks[y];
+    const nums = c?.verdict === 'wrong' && c.sheet ? c.sheet : (S[u.id]?.[y]?.sheet || u.checks[y]?.sheet || '');
+    return String(nums).split(/\s*&\s*|\s*,\s*/).filter((n) => /^\d+$/.test(n)).map((n) => sheetLink(y, n, `${y} sheet ${n}`));
+  }
 
-  function renderCard() {
-    const d = byKey.get(cur);
-    if (!d) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'Pick a building on the left.' })); return; }
-    const c = checks.get(d.k);
-    const mapLink = el('a', { className: 'btn', href: `${MAP}?b=${encodeURIComponent(d.id)}&sanborn=${d.year}#map`, target: '_blank', rel: 'noopener', textContent: `Open on the map with the ${d.year} Sanborn` });
-    const sheets = d.street ? [sheetLink('1922', 15, '1922 sheet 15'), sheetLink('1929', 18, '1929 sheet 18'), sheetLink('1929', 19, '1929 sheet 19')]
-      : (d.urls.length ? d.urls.map((u, i) => el('a', { className: 'btn', href: u, target: '_blank', rel: 'noopener', textContent: `${d.year} sheet ${String(d.sheet).split(/\s*&\s*/)[i] || ''}`.trim() })) : []);
-    const keyMap = sheetLink(d.year, 1, `${d.year} sheet 1 (key map${d.year === '1906' ? '' : ' and street index'})`);
-
-    let verdict = c?.verdict || null;
-    const sheetIn = el('input', { type: 'text', id: 'fixSheet', value: c?.sheet || '', placeholder: 'e.g. 7, or 6 & 7' });
-    const noteIn = el('textarea', { id: 'fixNote', value: c?.note || '', placeholder: 'What the sheet prints on the lot (house number, material), or why you are unsure' });
-    const sheetWrap = el('label', {}, 'Correct sheet number', sheetIn);
-    const saveBtn = el('button', { className: 'save', type: 'button', textContent: c ? 'Save change' : 'Save and go to next' });
-    const status = el('div', { className: 'status' });
-    const taken = (A.assign?.[d.k] && A.assign[d.k] !== me) ? A.assign[d.k] : (A.done?.[d.k] && A.done[d.k] !== me && !c) ? A.done[d.k] : '';
+  async function renderCard() {
+    const u = byU.get(cur);
+    if (!u) { $('card').replaceChildren(el('div', { className: 'empty', textContent: 'Pick a building on the left.' })); return; }
+    if (live) { try { const j = await (await fetch(`${API}/record?u=${encodeURIComponent(u.k)}`, { cache: 'no-store' })).json(); mergeRec(u.k, j.record); persist(); } catch (e) { /* offline, use this browser's copy */ } }
+    if (cur !== u.k) return;
+    const r = recOf(u.k);
+    const taken = owner(u.k) && owner(u.k) !== me ? owner(u.k) : '';
     const blocked = !me || !!taken;
+    const status = el('div', { className: 'status' });
     if (!me) status.textContent = 'Pick your name at the top first.';
     else if (taken) status.textContent = `This one is ${taken}'s. Pick one of yours from My buildings.`;
-    const vbtns = Object.entries(VERDICT).map(([v, t]) => {
-      const b = el('button', { type: 'button', textContent: t }); b.dataset.v = v;
-      b.onclick = () => { verdict = v; sync(); };
-      return b;
+    const firstYear = u.attrs[0] || Object.keys(u.checks)[0] || '1922';
+    const mapLink = el('a', { className: 'btn', href: `${MAP}?b=${encodeURIComponent(u.id)}&sanborn=${firstYear}#map`, target: '_blank', rel: 'noopener', textContent: 'Open on the map' });
+
+    // part 1, sheet checks
+    const checkUI = Object.entries(u.checks).sort().map(([y, d]) => {
+      const c = r.checks[y] || {};
+      let v = c.verdict || null;
+      const sheetIn = el('input', { type: 'text', value: c.sheet || '', placeholder: 'e.g. 7, or 6 & 7' });
+      const noteIn = el('input', { type: 'text', value: c.note || '', placeholder: 'What the sheet prints on the lot, or why you are unsure' });
+      const sheetWrap = el('label', {}, 'Correct sheet number', sheetIn);
+      const btns = Object.entries(VERDICT).map(([val, t]) => { const b = el('button', { type: 'button', textContent: t }); b.dataset.v = val; b.onclick = () => { v = val; sync(); }; return b; });
+      const sheets = u.street ? [sheetLink('1922', 15, '1922 sheet 15'), sheetLink('1929', 18, '1929 sheet 18'), sheetLink('1929', 19, '1929 sheet 19')]
+        : d.urls.map((url, i) => el('a', { className: 'btn', href: url, target: '_blank', rel: 'noopener', textContent: `${y} sheet ${String(d.sheet).split(/\s*&\s*/)[i] || ''}`.trim() }));
+      function sync() { btns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v))); sheetWrap.hidden = v !== 'wrong'; }
+      sync();
+      const box = el('div', { className: 'part' },
+        el('div', { className: 'parthead' }, el('b', { textContent: y }), ` index says ${d.sheet ? 'sheet ' + d.sheet : 'no sheet'} · ${d.method || 'nothing matched'}`),
+        el('div', { className: 'why', textContent: d.why }),
+        el('div', { className: 'links' }, ...sheets, sheetLink(y, 1, `${y} sheet 1 (key map)`)),
+        el('div', { className: 'verdicts', role: 'group', ariaLabel: `${y} sheet` }, ...btns), sheetWrap, el('label', {}, 'Note', noteIn));
+      return { y, box, read: () => (v ? { verdict: v, sheet: v === 'wrong' ? sheetIn.value.trim() : '', note: noteIn.value.trim() } : null),
+        ok: () => !v || ((v !== 'wrong' || sheetIn.value.trim()) && (v !== 'unsure' || noteIn.value.trim())) };
     });
-    function sync() {
-      vbtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === verdict)));
-      sheetWrap.hidden = verdict !== 'wrong';
-      saveBtn.disabled = !canWrite || blocked || !verdict || (verdict === 'wrong' && !sheetIn.value.trim()) || (verdict === 'unsure' && !noteIn.value.trim());
-    }
-    sheetIn.oninput = sync; noteIn.oninput = sync;
+
+    // part 2, what each sheet shows
+    const attrUI = attrYears(u, r).map((y, i) => {
+      const a = r.attrs[y] || {};
+      const sel = (f) => { const s = el('select', { ariaLabel: `${y} ${LABEL[f]}` }, new Option('—', ''), ...OPTS[f].map((o) => new Option(o, o))); s.value = a[f] || (f === 'change' && i === 0 ? '' : ''); return s; };
+      const fields = { material: sel('material'), stories: sel('stories'), use: sel('use'), change: sel('change'),
+        number: el('input', { type: 'text', value: a.number || '', placeholder: 'e.g. 405' }), note: el('input', { type: 'text', value: a.note || '', placeholder: 'Anything else (porch, outbuilding, roof)' }) };
+      const box = el('div', { className: 'part' },
+        el('div', { className: 'parthead' }, el('b', { textContent: y }), ' ', ...sheetLinks(u, y, r)),
+        el('div', { className: 'attrgrid' }, ...Object.entries(fields).map(([f, inp]) => el('label', { className: f === 'note' ? 'wide' : '' }, LABEL[f], inp))));
+      return { y, box, read: () => { const o = Object.fromEntries(Object.entries(fields).map(([f, inp]) => [f, inp.value.trim()])); return Object.values(o).some(Boolean) ? o : null; } };
+    });
+
+    const saveBtn = el('button', { className: 'save', type: 'button', textContent: 'Save', disabled: blocked });
     saveBtn.onclick = () => {
-      checks.set(d.k, { verdict, sheet: verdict === 'wrong' ? sheetIn.value.trim() : '', note: noteIn.value.trim(), item: d.k, id: d.id, year: d.year, index_sheet: d.sheet, at: new Date().toISOString(), checker: me });
-      persist();
-      if (!c) { const vis = visible().filter((x) => x.k !== d.k && !statusOf(x)); cur = vis[0]?.k || null; }
-      render();
-      send(d.k).then(afterSend);
+      if (checkUI.some((c) => !c.ok())) { status.textContent = 'Type the right sheet number for a wrong sheet, and a note for Not sure.'; return; }
+      const at = new Date().toISOString(); let n = 0;
+      checkUI.forEach(({ y, read }) => { const v = read(); const o = r.checks[y]; if (v && (!o || o.verdict !== v.verdict || o.sheet !== v.sheet || o.note !== v.note)) { r.checks[y] = { ...v, at }; n++; } });
+      attrUI.forEach(({ y, read }) => { const v = read(); const o = r.attrs[y]; if (v && (!o || Object.keys(v).some((f) => (o[f] || '') !== v[f]))) { r.attrs[y] = { ...v, at }; n++; } });
+      unsent.add(u.k); persist();
+      const [d, t] = parts(u);
+      if (d === t) { notice = `Saved ${u.address}. All done!`; const nxt = visible().find((x) => x.k !== u.k && statusOf(x) !== 'done'); cur = nxt?.k || null; }
+      else notice = `Saved ${u.address} (${d} of ${t} parts).`;
+      render(); send(u.k).then(afterSend);
     };
 
-    const who = c ? el('div', { className: 'status', textContent: `Checked ${new Date(c.at).toLocaleDateString()}: ${VERDICT[c.verdict]}${c.sheet ? ', sheet ' + c.sheet : ''}. Change it below if needed.` }) : null;
-
     $('card').replaceChildren(...[
-      el('div', {}, el('div', { className: 'eyebrow', textContent: `${d.area} · ${d.year}${d.sample ? ' · random check' : ''}` }), el('h2', { textContent: d.address }),
-        el('div', { className: 'status' }, dot(owner(d.k)), ' ', A.done?.[d.k] && !c ? `Already checked by ${A.done[d.k]}` : A.assign?.[d.k] ? `${A.assign[d.k] === me ? 'Yours' : A.assign[d.k] + "'s"}` : 'Not handed out yet')),
-      d.street ? null : el('div', { className: 'claim' },
-        el('div', {}, el('div', { className: 'eyebrow', textContent: 'Index says' }), el('div', { className: 'big', textContent: d.sheet ? `sheet ${d.sheet}` : 'none' })),
-        el('div', {}, el('div', { className: 'eyebrow', textContent: 'Found by' }), el('div', { textContent: d.method || 'nothing matched' }))),
-      el('div', { className: 'why', textContent: d.why }),
-      el('ol', { className: 'steps' },
-        el('li', {}, 'Find the building and its printed number.', el('div', { className: 'links' }, mapLink)),
-        el('li', {}, 'Check it on the sheet.', el('div', { className: 'links' }, ...sheets, keyMap))),
-      who,
-      el('div', { className: 'form' }, el('div', { className: 'verdicts', role: 'group', ariaLabel: 'Verdict' }, ...vbtns), sheetWrap, el('label', {}, 'Note', noteIn), saveBtn, status),
-      d.notes ? el('details', {}, el('summary', { textContent: 'What the index recorded' }), el('p', { className: 'notes', textContent: d.notes })) : null].filter(Boolean));
-    sync();
+      el('div', {}, el('div', { className: 'eyebrow', textContent: u.area }), el('h2', { textContent: u.address }),
+        el('div', { className: 'status' }, dot(owner(u.k)), ' ', A.done?.[u.k] ? `Done by ${A.done[u.k]}` : A.assign?.[u.k] ? (A.assign[u.k] === me ? 'Yours' : `${A.assign[u.k]}'s`) : 'Not handed out yet')),
+      el('div', { className: 'links' }, mapLink),
+      checkUI.length ? el('section', { className: 'sect' }, el('h3', { textContent: '1. Confirm the sheet' }), ...checkUI.map((c) => c.box)) : null,
+      attrUI.length ? el('section', { className: 'sect' }, el('h3', { textContent: `${checkUI.length ? '2' : '1'}. What each sheet shows` }), ...attrUI.map((a) => a.box))
+        : u.street ? null : el('p', { className: 'status', textContent: 'No sheet draws this building yet. If you find it in part 1, save and its year will appear here.' }),
+      el('div', { className: 'form' }, saveBtn, status),
+      Object.values(u.checks)[0]?.notes ? el('details', {}, el('summary', { textContent: 'What the index recorded' }), el('p', { className: 'notes', textContent: Object.values(u.checks)[0].notes })) : null].filter(Boolean));
   }
 
   function render() {
     renderPeople(); renderProgress();
-    if (!pool().some((d) => d.area === area && !statusOf(d))) { const a2 = AREAS.find((a) => pool().some((d) => d.area === a && !statusOf(d))); if (a2) area = a2; }
-    if (!cur || byKey.get(cur)?.area !== area) cur = visible()[0]?.k || null;
-    renderList(); renderCard();
+    if (!pool().some((u) => u.area === area && statusOf(u) !== 'done')) { const a2 = AREAS.find((a) => pool().some((u) => u.area === a && statusOf(u) !== 'done')); if (a2) area = a2; }
+    if (!cur || byU.get(cur)?.area !== area) cur = visible()[0]?.k || null;
+    renderList(); renderCard(); renderSync();
   }
   $('fStatus').onchange = () => { cur = null; render(); };
   $('fWho').onchange = () => { cur = null; render(); };
+  $('fSearch').oninput = () => { cur = null; render(); };
   (A.people || []).forEach((p) => $('me').append(new Option(p.name, p.name)));
   $('me').value = me;
   $('me').onchange = () => { me = $('me').value; try { localStorage.setItem(ME_KEY, me); } catch (e) { /* no storage */ } cur = null; render(); };
-  if (!A.people?.length) { $('me').closest('.who').hidden = true; $('fWho').value = 'all'; $('fWho').hidden = true; }
 
-  // map of who has which buildings, loaded the first time it is opened
+  // ---- sending ----
+  async function send(k) {
+    if (!recs.has(k) || !me) return 'gone';
+    try {
+      const r = await fetch(API + '/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit: k, checker: me, ...recs.get(k) }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 409) { recs.delete(k); unsent.delete(k); persist(); if (j.assign) A = j; notice = `${byU.get(k)?.address || 'That building'} is ${j.owner}'s, so what you entered wasn't kept.`; return 'owner'; }
+      if (!r.ok) throw new Error(r.status);
+      unsent.delete(k); mergeRec(k, j.record); persist();
+      if (j.assign) { A = j; live = true; }
+      if (j.added) notice += ` You got ${j.added} more buildings nearby.`;
+      return 'ok';
+    } catch (e) { live = false; return 'offline'; }
+  }
+  async function flush() { for (const k of [...unsent]) { if ((await send(k)) === 'offline') break; } }
+  function renderSync() {
+    const n = unsent.size;
+    $('saveText').textContent = (notice ? notice + ' ' : '') + (n ? `${n} building${n === 1 ? '' : 's'} waiting to send. They're safe in this browser and will send when the lab can be reached.`
+      : live ? 'Connected to the lab. Everything saves there when you click Save.' : "Can't reach the lab right now. Your work is kept in this browser and will send when it's back.");
+  }
+  function afterSend(res) { if (res === 'owner') render(); else { renderPeople(); renderProgress(); renderList(); } renderSync(); }
+  setInterval(async () => { await pull(); if (unsent.size) await flush(); afterSend(); }, 60000);
+
+  // ---- map of who has what, loaded the first time it is opened ----
   $('whomapBox').addEventListener('toggle', async function once() {
     if (!$('whomapBox').open) return;
     $('whomapBox').removeEventListener('toggle', once);
     try {
       await new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js'; sc.onload = ok; sc.onerror = bad; document.head.append(sc); });
-      const rows = (await (await fetch('../data/buildings.json')).json()).rows, at = new Map(rows.map((r) => [r.id, [r.lon, r.lat]]));
-      const byId = new Map();
-      items.forEach((d) => { if (!at.has(d.id)) return; const o = byId.get(d.id) || { n: 0, open: 0, who: '' }; o.n++; if (!statusOf(d)) { o.open++; o.who = o.who || A.assign?.[d.k] || ''; } byId.set(d.id, o); });
-      const feats = [...byId].map(([id, o]) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: at.get(id) }, properties: { id, c: o.open ? (COLOR[o.who] || '#9aa6b5') : 'rgba(0,0,0,0)', done: o.open ? 0 : 1 } }));
+      const feats = units.filter((u) => rowById.has(u.id)).map((u) => { const r = rowById.get(u.id), done = !!A.done?.[u.k];
+        return { type: 'Feature', geometry: { type: 'Point', coordinates: [r.lon, r.lat] }, properties: { k: u.k, c: done ? 'rgba(0,0,0,0)' : (COLOR[A.assign?.[u.k]] || '#9aa6b5'), done: done ? 1 : 0 } }; });
       const dark = matchMedia('(prefers-color-scheme: dark)').matches;
       const m = new maplibregl.Map({ container: 'whoMap', attributionControl: { compact: true }, style: { version: 8, sources: {
         base: { type: 'raster', tiles: [`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${dark ? 'World_Dark_Gray_Base' : 'World_Light_Gray_Base'}/MapServer/tile/{z}/{y}/{x}`], tileSize: 256, maxzoom: 16, attribution: 'Basemap Esri, HERE, Garmin, © OpenStreetMap contributors' },
@@ -344,78 +433,25 @@ summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
         layers: [{ id: 'base', type: 'raster', source: 'base' }, { id: 'pts', type: 'circle', source: 'pts', paint: { 'circle-color': ['get', 'c'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 3, 18, 8], 'circle-stroke-width': ['case', ['==', ['get', 'done'], 1], 1.5, 1], 'circle-stroke-color': ['case', ['==', ['get', 'done'], 1], '#8b9298', dark ? '#0a1628' : '#ffffff'] } }] },
         bounds: feats.reduce((b, f) => b.extend(f.geometry.coordinates), new maplibregl.LngLatBounds(feats[0].geometry.coordinates, feats[0].geometry.coordinates)), fitBoundsOptions: { padding: 24 } });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }));
-      m.on('click', 'pts', (e) => { const id = e.features[0].properties.id; const d = items.find((x) => x.id === id && !statusOf(x)) || items.find((x) => x.id === id); if (!d) return; if (mineOnly() && A.assign?.[d.k] !== me) $('fWho').value = 'all'; area = d.area; cur = d.k; render(); $('card').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+      m.on('click', 'pts', (e) => { const u = byU.get(e.features[0].properties.k); if (!u) return; if (mineOnly() && A.assign?.[u.k] !== me && A.done?.[u.k] !== me) $('fWho').value = 'all'; $('fStatus').value = 'all'; area = u.area; cur = u.k; render(); $('card').scrollIntoView({ block: 'start', behavior: 'smooth' }); });
       m.on('mouseenter', 'pts', () => { m.getCanvas().style.cursor = 'pointer'; }); m.on('mouseleave', 'pts', () => { m.getCanvas().style.cursor = ''; });
       $('whoNote').textContent = 'Each dot is a building, colored by who has it. Gray dots are not handed out yet and hollow dots are done. Click a dot to open it.';
     } catch (e) { $('whoNote').textContent = 'The map did not load. The list below still works.'; }
   });
-  $('fSearch').oninput = () => { cur = null; render(); };
 
-  // checks are kept in this browser and sent to the lab server as each one is saved; unsent ones retry
-  const KEY = 'sanborn-checks-v1', UNSENT_KEY = 'sanborn-unsent', CODE_KEY = 'sanborn-labcode';
-  let code = '', unsent = new Set(), notice = '';
-  try { code = localStorage.getItem(CODE_KEY) || ''; unsent = new Set(JSON.parse(localStorage.getItem(UNSENT_KEY) || '[]')); } catch (e) { /* no storage */ }
-  const keepUnsent = () => { try { localStorage.setItem(UNSENT_KEY, JSON.stringify([...unsent])); } catch (e) { /* no storage */ } };
-  async function send(k) {
-    const c = checks.get(k); if (!c) return 'gone';
-    unsent.add(k); keepUnsent();
-    try {
-      const r = await fetch(API + '/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
-      const j = await r.json().catch(() => ({}));
-      if (r.status === 401) { code = ''; try { localStorage.removeItem(CODE_KEY); } catch (e) { /* */ } return 'code'; }
-      if (r.status === 409) { checks.delete(k); persist(); unsent.delete(k); keepUnsent(); if (j.assign) A = j; notice = `${byKey.get(k)?.address || 'That building'} is ${j.owner}'s, so your check on it wasn't kept.`; return 'owner'; }
-      if (!r.ok) throw new Error(r.status);
-      unsent.delete(k); keepUnsent();
-      if (j.assign) { A = j; live = true; }
-      if (j.added) notice = `You got ${j.added} more buildings nearby.`;
-      return 'ok';
-    } catch (e) { live = false; return 'offline'; }
-  }
-  async function flush() { for (const k of [...unsent]) { const r = await send(k); if (r === 'code' || r === 'offline') break; } }
-  function renderSync() {
-    $('codeWrap').hidden = true;
-    const n = unsent.size;
-    $('saveText').textContent = (notice ? notice + ' ' : '') + (n ? `${n} check${n === 1 ? '' : 's'} waiting to send. They're safe in this browser and will send when the lab can be reached.`
-      : live ? 'Connected to the lab. Each check saves there as soon as you click Save.' : "Can't reach the lab right now. Your checks are kept in this browser and will send when it's back.");
-  }
-  // after a send, refresh everything except the card, so whatever the student is typing on the next building stays put
-  function afterSend(res) { if (res === 'owner') render(); else { renderPeople(); renderProgress(); renderList(); } renderSync(); }
-  $('code').onchange = async () => { code = $('code').value.trim(); try { localStorage.setItem(CODE_KEY, code); } catch (e) { /* */ } $('code').value = ''; await flush(); afterSend(); };
-  setInterval(async () => { await pull(); if (unsent.size) await flush(); afterSend(); }, 60000);
-  const COLS = ['item', 'id', 'year', 'index_sheet', 'verdict', 'sheet', 'note', 'at', 'checker'];
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(checks))); return true; } catch (e) { return false; } }
-  try { Object.entries(JSON.parse(localStorage.getItem(KEY) || '{}')).forEach(([k, v]) => { if (byKey.has(k)) checks.set(k, v); }); } catch (e) { /* no storage: the page still works for this visit */ }
+  // ---- a copy for the student's own records ----
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   $('dl').onclick = () => {
-    if (!checks.size) { $('saveText').textContent = 'Nothing checked yet, so there is nothing to download.'; return; }
-    const csv = [COLS.join(','), ...[...checks.values()].map((c) => COLS.map((k) => q(k === 'checker' ? (c.checker || me) : c[k])).join(','))].join('\n');
-    const a = el('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `sanborn-checks-${me ? me + '-' : ''}${new Date().toISOString().slice(0, 10)}.csv` });
+    const COLS = ['building', 'address', 'year', 'verdict', 'sheet', 'check_note', 'material', 'stories', 'use', 'number', 'change', 'attr_note'];
+    const out = [COLS.join(',')];
+    recs.forEach((r, k) => { const u = byU.get(k); new Set([...Object.keys(r.checks), ...Object.keys(r.attrs)]).forEach((y) => { const c = r.checks[y] || {}, a = r.attrs[y] || {};
+      out.push([k, u?.address, y, c.verdict, c.sheet, c.note, a.material, a.stories, a.use, a.number, a.change, a.note].map(q).join(',')); }); });
+    if (out.length === 1) { notice = 'Nothing saved yet.'; renderSync(); return; }
+    const a = el('a', { href: URL.createObjectURL(new Blob([out.join('\n')], { type: 'text/csv' })), download: `sanborn-${me ? me + '-' : ''}${new Date().toISOString().slice(0, 10)}.csv` });
     document.body.append(a); a.click(); a.remove();
-    notice = `Downloaded a copy of ${checks.size} check${checks.size === 1 ? '' : 's'} (your checks also go to the lab as you save them).`; renderSync();
   };
-  function parseCsv(t) {  // handles quoted fields with commas, quotes and line breaks
-    const rows = []; let row = [], f = '', inq = false;
-    for (let i = 0; i < t.length; i++) {
-      const ch = t[i];
-      if (inq) { if (ch === '"' && t[i + 1] === '"') { f += '"'; i++; } else if (ch === '"') inq = false; else f += ch; }
-      else if (ch === '"') inq = true; else if (ch === ',') { row.push(f); f = ''; }
-      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && t[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
-      else f += ch;
-    }
-    if (f || row.length) { row.push(f); rows.push(row); }
-    return rows;
-  }
-  $('load').onchange = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    const rows = parseCsv(await file.text()); const head = rows.shift() || [];
-    let n = 0;
-    rows.forEach((r) => { const o = Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])); if (byKey.has(o.item) && VERDICT[o.verdict]) { const old = checks.get(o.item); if (!old || (o.at || '') > (old.at || '')) { checks.set(o.item, o); n++; } } });
-    persist(); e.target.value = '';
-    rows.forEach((r) => { const k = r[head.indexOf('item')]; if (checks.has(k)) unsent.add(k); }); keepUnsent();
-    notice = `Loaded ${n} check${n === 1 ? '' : 's'} from ${file.name}.`;
-    await flush(); render(); renderSync();
-  };
-  render(); renderSync();
+
+  render();
   if (unsent.size) { await flush(); afterSend(); }
 })();
 </script>
